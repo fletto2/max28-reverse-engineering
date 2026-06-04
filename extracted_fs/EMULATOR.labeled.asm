@@ -16,6 +16,12 @@
 ;
 
 ; ---- 0x0000-0x00d7 CODE ----
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: STARTUP  <<<<<<<<<<<<<<<<
+; Print the sign-on banner (INT 21h AH=9), shrink the program's memory
+; block (AH=4Ah), set the video mode + 80/132-column flag [0x14], then
+; jump into the main service loop.
+;
 00000000  1E                push ds
 ;>>>> [startup (INT 21h AH=9 sign-on)] mov ax,0x19: loads immediate 0x19, moved into DS at 0x04 (mov ds,ax) so DS:DX (DX=0x15 at 0x08) points at the $-terminated sign-on string for the INT 21h AH=9 print at 0x0B. 0x19 is the resident data/PSP-relative segment value, not a computed value. This is the module's first real instruction after push ds at 0x00.  // 0x04 mov ds,ax; 0x06 mov ah,9; 0x08 mov dx,0x15; 0x0B int 0x21
 00000001  B81900            mov ax,0x19
@@ -46,10 +52,21 @@
 00000028  CD10              int 0x10   ; INT 10h video (teletype/mode)
 ;>>>> [control flow / main-loop entry] jmp short 0x30: on the first pass through main-loop setup (right after INT 10h set-video-mode at 0x28), skips the INT 40h AH=0 serial char poll at 0x2C and lands directly on the INT 40h AH=4 get-host-record call at 0x30. Bypasses reading a char so the code immediately polls the kernel for an incoming host data block.  // Target is 0x30 (mov ah,0x4; int 0x40), skipping 0x2C (mov ah,0x0; int 0x40). Matches accepted 0x2A annotation exactly.
 0000002A  EB04              jmp short 0x30
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: MAIN LOOP head  <<<<<<<<<<<<<<<<
+; INT 40h AH=0 idles/polls the Z8530 SCC host link, then falls into the
+; get-host-record fetch. All handlers jmp back here when done.
+;
 status_0002C:
 ;>>>> [serial host link / main-loop head (INT 40h AH=0)] mov ah,0x0: sets AH=0 (kernel comm function: poll/get char or status from the Z8530 SCC host link) immediately before int 0x40 at 0x2E. This is the top of the main service loop, the target jumped to repeatedly from 0x3D, 0x119, 0x14D, 0x179. INT 40h is the terminal kernel's custom comm/system API, not DOS.  // 0x2E int 0x40; followed by AH=4 get-record at 0x30; jmp 0x2c back-edges from 0x3D/0x119/0x14D/0x179
 0000002C  B400              mov ah,0x0
 0000002E  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Get host display record  <<<<<<<<<<<<<<<<
+; INT 40h AH=4 returns the next host data block in ES:BX. If null, clear
+; the 'record present' flag and re-poll; otherwise save the pointer and
+; paint the screen.
+;
 sub_00030:
 ;>>>> [kernel host-record fetch (INT 40h AH=4)] mov ah,0x4: sets the kernel function selector to 4 for the `int 40h` at 0x32 = get-host-record / get-display-buffer, which returns the record pointer in ES:BX (then validated by or ax,bx). Not a DOS allocation; INT 40h is the terminal kernel's custom comm/system API.  // 0x30 mov ah,4; 0x32 int 0x40; 0x34 mov ax,es; 0x36 or ax,bx; pointer stored at 0x3f/0x43.
 00000030  B404              mov ah,0x4
@@ -74,6 +91,12 @@ loc_0003F:
 ;>>>> [video / screen clear-paint setup] mov dx,0x1e: loads the outer-loop row count (0x1E = 30) for the dual-plane clear/paint routine; DX is decremented at 0x86 and tested by jnz at 0x87. BP=0x40 set next is the seed attribute value. 0x1E is the screen row count, not a data-structure offset.  // 0x53 mov dx,0x1e; 0x56 mov bp,0x40; 0x86 dec dx; 0x87 jnz 0x59 uses DX as the row counter.
 00000053  BA1E00            mov dx,0x1e
 00000056  BD4000            mov bp,0x40
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Screen clear/paint (outer row loop)  <<<<<<<<<<<<<<<<
+; DX = row count. Per row: read a cell address word from the host record,
+; clear the char + attribute VRAM planes, write an incrementing per-cell
+; marker, then space-fill the row to 80 or 132 columns ([0x14] selects).
+;
 loc_00059:
 00000059  268B07            mov ax,[es:bx]
 ;>>>> [host-record VRAM paint / record-pointer advance] inc bx: first of two inc bx (0x5C, 0x5D) that advance the host-record pointer ES:BX past the 16-bit address word just read at 0x59 (mov ax,[es:bx]). The word is byte-swapped (xchg al,ah at 0x5E) into DI as the VRAM cell offset; advancing BX by 2 steps to the next field of the synchronous-host record before the cell/attribute write at 0x64-0x65. Not a screen address word read from VRAM.  // 0x59 mov ax,[es:bx]; 0x5C/0x5D inc bx x2 (=+2); 0x5E xchg al,ah; 0x60 mov di,ax
@@ -104,6 +127,12 @@ loc_00059:
 00000079  7703              ja loc_0007E   ; ->0x7E
 ;>>>> [video / 80-column count for dual-plane row fill] mov cx,0x4f: sets the per-row column count to 0x4F (79) for the 80-column screen-clear fill loop at 0x7E. Reached by fall-through when cmp byte [0x14],0x30 / ja 0x7e (0x74/0x79) found the column-mode flag at [0x14] <= '0', i.e. 80-col; the 132-col path keeps CX=0x83 (set at 0x71). CX then drives loop 0x7E (0x84) which writes AH to the attribute plane (es:di-0x8000) and stosb's AL spaces to the char plane.  // 0x71 mov cx,0x83; 0x74 cmp byte [0x14],0x30; 0x79 ja 0x7e (skips this); 0x7B mov cx,0x4f; 0x7E mov [es:di-0x8000],ah; 0x84 loop 0x7e. [0x14] is the 80/132 mode flag (init 0x32 at 0x25).
 0000007B  B94F00            mov cx,0x4f
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Row space-fill (inner loop)  <<<<<<<<<<<<<<<<
+; Blank one display row: write space (0x20) to the char plane and the
+; default attribute to the attribute plane (0x8000 below), CX = column
+; count.
+;
 loc_0007E:
 0000007E  2688A50080        mov [es:di-0x8000],ah
 ;>>>> [video / screen clear (dual-plane VRAM char plane)] stosb: writes AL=0x20 (space, loaded at 0x6E) into the VRAM character plane at ES:DI and advances DI. Paired with `mov [es:di-0x8000],ah` at 0x7E (attribute byte 0x20 to the attribute plane 0x8000 below). The `loop 0x7e` at 0x84 repeats CX times (0x4F/80-col or 0x83/132-col) to blank one display row across both planes; outer row counter DX dec'd at 0x86.  // 0x6E mov ax,0x20; 0x7E mov [es:di-0x8000],ah; 0x83 stosb; 0x84 loop 0x7e
@@ -126,6 +155,11 @@ loc_0007E:
 00000097  803E140030        cmp byte [0x14],0x30
 0000009C  7703              ja loc_000A1   ; ->0xA1
 0000009E  B95000            mov cx,0x50
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Column-ruler test pattern  <<<<<<<<<<<<<<<<
+; Fill a row with the repeating '1'..'9','0' digit ruler (a visible screen
+; test pattern), CX = 80/132 columns.
+;
 loc_000A1:
 000000A1  AA                stosb
 000000A2  FEC0              inc al
@@ -150,6 +184,12 @@ loc_000AA:
 000000C2  BA0018            mov dx,0x1800
 ;>>>> [video / INT 10h AH=2 set cursor position] int 0x10 with AH=2 (set at 0xC0) and DX=0x1800 (set at 0xC2) = BIOS/gate-array set-cursor-position to row DH=0x18 (24), column DL=0 (page BH ignored here). Issued right after rep movsb painted the 40-byte label row, parking the cursor at the bottom row before the INT 16h keyboard poll at 0xC7. AH=2 is set-cursor, not a video-mode set (that is INT 10h AH=0 at 0x28/0x123).  // 0xC0 B402 mov ah,0x2; 0xC2 BA0018 mov dx,0x1800; 0xC5 CD10 int 0x10; followed by 0xC7 mov ah,1/int 0x16 keyboard status. DH=0x18=24, DL=0.
 000000C5  CD10              int 0x10   ; INT 10h video (teletype/mode)
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Keyboard service + dispatch  <<<<<<<<<<<<<<<<
+; INT 16h AH=1 (status); if a key waits, INT 16h AH=0 (read), then run the
+; cmp-al/jz key/escape dispatch table (the 0xD7-0x118 bytes). No key ->
+; back to the main loop.
+;
 cursor_fread_blk_000C7:
 ;>>>> [keyboard (INT 16h AH=1 status poll)] mov ah,0x1: sets AH=1 (INT 16h get-keyboard-status, non-blocking) for the int 0x16 at 0xC9; the following jz 0x119 (0xCB) returns to the main loop (jmp 0x2c at 0x119) when ZF=1 means no key pending. This is the head of the keyboard-poll branch reached after the INT 10h cursor-position call (AH=2, BX=row/col at 0xC0-0xC5). When a key IS waiting it falls through to the blocking AH=0 read at 0xCD-0xCF.  // 0xC7 mov ah,1; 0xC9 int 0x16; 0xCB jz 0x119; 0x119 jmp 0x2c (verified in full.asm); paired AH=0 blocking read at 0xCF
 000000C7  B401              mov ah,0x1
@@ -204,6 +244,13 @@ cursor_fread_blk_000C7:
 000113  74 67 3c 65 74 63                                |tg<etc|
 
 ; ---- 0x0119-0x019d CODE ----
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Dispatch exit / mode + control handlers  <<<<<<<<<<<<<<<<
+; No-key/unmatched exit jumps to the main loop. Nearby table-dispatched
+; handlers: switch 80/132-column mode (INT 10h), terminate (print
+; 'Terminating', INT 21h AH=4Ch), and send a control byte to the host (INT
+; 40h AH=20h).
+;
 dispatch_fread_00119:
 ;>>>> [main loop return (INT 40h poll)] jmp 0x2c: unconditional branch back to the main service-loop head (`mov ah,0; int 40h` at 0x2C). This is the 'no-key' target of the INT 16h AH=01h jz at 0xCB and the AH=00h zero/extended-scancode jz at 0xD3 - when no usable key is read, control returns here to re-poll the kernel. The preceding bytes 0x102-0x118 are a cmp-al/jz scancode dispatch table (e.g. 3c 35 74.. = 'cmp al,0x35 / jz ..'), so 0x119 is the fall-off/no-match exit of that dispatch chain.  // 0xCB jz 0x119; 0xD3 jz 0x119; 0x119 E910FF jmp 0x2c; preceding string bytes '3c xx 74 xx' = cmp al,imm/jz pattern
 00000119  E910FF            jmp status_0002C   ; ->0x2C
@@ -237,6 +284,12 @@ dispatch_fread_00119:
 00000155  EB06              jmp short 0x15d
 00000157  BA0100            mov dx,0x1
 0000015A  BEBB00            mov si,0xbb
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Printer-port self-test loop  <<<<<<<<<<<<<<<<
+; INT 17h AH=2 reads printer status (mask error/select/paper bits); while
+; the host link stays busy (INT 40h AH=0/AH=4 polled) it re-issues; on
+; 'printer OK' it jumps to the string-output loop.
+;
 print_fread_blk_0015D:
 0000015D  B402              mov ah,0x2
 ;>>>> [printer (INT 17h AH=2 status/init)] int 0x17 with AH=2 (set at 0x15D): printer-port self-test status/init call for the printer selected in DX (DX=0/LPT1 via xor dx,dx at 0x150, or DX=1 via mov dx,0x1 at 0x157). Returns status in AH, then xor ah,0x80 (0x161) inverts the busy/ACK sense and test ah,0xa9 (0x164) masks error/select/paper-out bits 7,5,3,0; jz 0x18f (0x167) takes the 'printer OK' path to the lodsb string-output loop.  // 0x15D mov ah,2; 0x15F int 0x17; 0x161 xor ah,0x80; 0x164 test ah,0xa9; 0x167 jz 0x18f; DX from 0x150/0x157
@@ -269,10 +322,20 @@ status_00179:
 ;>>>> [kernel INT 40h AH=34h (3-way selector)] jz 0x18a: final branch of the AL selector chain feeding INT 40h AH=34h. After `mov ah,0x34; cmp al,0x64` (0x17C/0x17E), the code picks AL: `mov al,2; jc 0x18a` (AL<0x64 -> 2), `mov al,0; jz 0x18a` (AL==0x64 -> 0), else fall to `mov al,1` (0x188). This jz takes the AL==0x64 case (ZF from the cmp at 0x17E) directly to the `int 0x40` at 0x18A, skipping the mov al,1. Selects argument 0 for kernel fn 34h.  // 0x17C mov ah,0x34; 0x17E cmp al,0x64; 0x180 mov al,2; 0x182 jc 0x18a; 0x184 mov al,0; 0x186 jz 0x18a; 0x188 mov al,1; 0x18A int 0x40
 00000186  7402              jz sub_0018A   ; ->0x18A
 00000188  B001              mov al,0x1
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Kernel INT 40h AH=34h call  <<<<<<<<<<<<<<<<
+; Invoke kernel fn 34h with a 3-way selector (AL=0/1/2 chosen by comparing
+; the key to 0x64), then return to the main loop.
+;
 sub_0018A:
 0000018A  CD40              int 0x40   ; INT 40h AH=0x34: set current-CB mode
 ;>>>> [main loop return after INT 40h AH=34h] jmp 0x2c: returns to the main service loop head after the AH=34h kernel call. The preceding chain (mov ah,0x34; cmp al,0x64; jc/jz selecting AL=0/1/2; int 40h) invokes kernel function 34h with a 3-way selector argument; this jmp resumes polling.  // 0x17C mov ah,0x34; 0x182 jc; 0x186 jz; 0x188 mov al,1; 0x18A int 0x40; 0x18C jmp 0x2c (main loop at 0x2c).
 0000018C  E99DFE            jmp status_0002C   ; ->0x2C
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Printer string-output loop  <<<<<<<<<<<<<<<<
+; lodsb a char; '$' ends it; otherwise send via INT 17h AH=0 and repeat.
+; Emits the parallel/serial printer-port test strings.
+;
 print_0018F:
 ;>>>> [INT 17h printer string output loop] lodsb fetches the next character from DS:SI into AL for the printer-output loop. Each byte is compared to '$' (cmp al,0x24 at 0x190); if not the terminator it is sent to the printer via INT 17h AH=0 (xor ah,ah at 0x197, int 17h at 0x199). This drives the parallel-printer-port self-test that prints the 'This is a test of the Parallel Printer Port' string.  // Target AC lodsb; followed by cmp al,0x24 ('$'), jnz 0x197, xor ah,ah, int 0x17. SI set earlier (0x152 mov si,0x70 / 0x15A mov si,0xbb) to test strings.
 0000018F  AC                lodsb

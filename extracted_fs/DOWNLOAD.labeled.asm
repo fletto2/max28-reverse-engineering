@@ -16,6 +16,14 @@
 ;
 
 ; ---- 0x0000-0x03bc CODE ----
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: STARTUP  <<<<<<<<<<<<<<<<
+; Print banner (INT 21h AH=9), shrink memory (AH=4Ah), set video mode 7
+; (INT 10h), allocate two RAM staging buffers (AH=48h: 128 KiB + 112 KiB),
+; register the receive buffer (INT 40h AH=2Eh), then loop: poll (0x60) ->
+; send status (0x1FC) -> redraw status screen (0x219) -> INT 40h AH=0
+; yield -> repeat.
+;
 00000000  1E                push ds
 00000001  B83B00            mov ax,0x3b
 00000004  8ED8              mov ds,ax
@@ -60,6 +68,11 @@
 0000004E  B400              mov ah,0x0
 00000050  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 00000052  EBF1              jmp short 0x45
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Error exit  <<<<<<<<<<<<<<<<
+; Print the 'Lack of Memory' message and terminate (INT 21h AH=4Ch, code
+; 1). Reached when a buffer allocation failed.
+;
 loc_00054:
 00000054  B409              mov ah,0x9
 00000056  BAFC00            mov dx,0xfc
@@ -67,6 +80,14 @@ loc_00054:
 0000005B  B8014C            mov ax,0x4c01
 ;>>>> [INT 21h AH=4Ch program exit (error path)] `int 0x21` executes DOS-style terminate-with-exit-code: AX=0x4C01 (AH=0x4C exit, AL=01 error code) loaded at 0x5B. This is the error-exit path reached at 0x54 after an INT 21h AH=48h buffer allocation failed (jc 0x54 at 0x2E/0x3A); it first prints the error string at DS:DX=0xFC via INT 21h AH=9 (0x56/0x59), then this INT 21h returns control to the resident kernel with exit code 1.  // 0x54 mov ah,0x9; 0x56 mov dx,0xfc; 0x59 int 0x21; 0x5B mov ax,0x4c01; 0x5E int 0x21. Reached from jc 0x54 at 0x2E and 0x3A.
 0000005E  CD21              int 0x21   ; INT 21h AH=0x4c: exit to kernel
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Poll-and-dispatch  <<<<<<<<<<<<<<<<
+; INT 40h AH=2Ch gets a serial byte/status from the SCC. A status byte
+; (AH!=0) branches to the ACK/NAK setter; otherwise bump the mod-4 tick
+; counter and call the current receive-state handler via [0x12]. (The
+; handlers at 0x7A/0x85/0x9A/0xB1/0xE6/0xF1/0xFE form the XMODEM-style
+; block receive state machine.)
+;
 sub_00060:
 00000060  B42C              mov ah,0x2c
 00000062  CD40              int 0x40   ; INT 40h AH=0x2c: clear [0x7A8] + far call
@@ -146,6 +167,12 @@ status_fhandle_000D6:
 ;>>>> [XMODEM receive state machine (next-state vector set)] mov word [0x12],0x7a sets the polled state-handler vector [0x12] to 0x7a after the trailer-byte check at 0xFE/0x102 (cmp al,[0x19] / jnz 0xcf) passed. [0x12] is the handler called via CALL [0x12] in the INT 40h AH=0x2C poll loop; 0x7a is the block-start detector (cmp al,0x2 at 0x7A). This resets the receiver to wait for the next block's STX after a frame's two-byte trailer verified, then jmp [0x14] dispatches the secondary vector.  // mov word [0x12],0x7a at 0x104, reached after cmp al,[0x19] (0xFE) / jnz 0xcf (0x102); followed by jmp [0x14] at 0x10A. Handler 0x7a is cmp al,0x2 block-start per prior accepted note (0x7A, 0x7E). [0x12] dispatched via CALL [0x12] at 0x74.
 00000104  C70612007A00      mov word [0x12],0x7a
 0000010A  FF261400          jmp [0x14]
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: End-of-transfer handler  <<<<<<<<<<<<<<<<
+; Verify the trailer bytes ([0x13b]==0x0C, [0x13a]==0x0F), copy the
+; 12-byte completion record to the display area, and reset all block/byte
+; counters for a new transfer.
+;
 dispatch_blk_status_0010E:
 0000010E  A03B01            mov al,[0x13b]
 00000111  3C0C              cmp al,0xc
@@ -179,6 +206,13 @@ dispatch_blk_status_0010E:
 00000148  C70616004200      mov word [0x16],0x42
 0000014E  C70614005F01      mov word [0x14],0x15f
 00000154  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Block-commit  <<<<<<<<<<<<<<<<
+; Verify block type/sequence, copy the received CX bytes from the packet
+; into the RAM staging buffer (les di,[0x22] / rep movsb), accumulate the
+; 32-bit byte total [0x1e:0x20], renormalize the far write pointer
+; [0x22:0x24], and increment the block counter [0x26].
+;
 blk_fhandle_00155:
 00000155  C606380120        mov byte [0x138],0x20
 0000015A  FF062800          inc word [0x28]
@@ -213,6 +247,12 @@ blk_fhandle_00155:
 status_001A6:
 000001A6  C606380130        mov byte [0x138],0x30
 000001AB  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Next-block setup  <<<<<<<<<<<<<<<<
+; Reinitialize the receive state vectors ([0x12]/[0x14]/[0x16]), the
+; status digit and sequence bytes and tick counter, then send the pending
+; ACK (0x1FC) and redraw the status screen (0x219).
+;
 dispatch_blk_status_001AC:
 000001AC  C60639010F        mov byte [0x139],0xf
 000001B1  C606380130        mov byte [0x138],0x30
@@ -243,6 +283,12 @@ dispatch_001F0:
 000001F6  C606380170        mov byte [0x138],0x70
 ;>>>> [INT 40h AH=6 serial receive handler (timeout path return)] `ret` ends the timeout/error branch of the INT 40h AH=6 serial-receive handler: reached via jc 0x1f0 when the kernel get-char returned CF=1 (no byte / timeout). That branch set next-state vector [0x16]=0x8a and status byte [0x138]=0x70 (error/timeout code), then this RET returns to the polling dispatch loop. It sits immediately before the ACK/NAK transmit routine at 0x1FC.  // 0x1E2 jc 0x1f0; 0x1F0 mov word [0x16],0x8a; 0x1F6 mov byte [0x138],0x70; 0x1FB ret; 0x1FC mov al,[0x138] (transmit routine).
 000001FB  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Serial TX (ACK/NAK)  <<<<<<<<<<<<<<<<
+; If a status byte is pending at [0x138], OR it with the low nibble of the
+; block sequence [0x139] and send it to the SCC via INT 40h AH=30h; clear
+; [0x138] on success.
+;
 clear_status_001FC:
 ;>>>> [INT 40h AH=0x30 serial TX (entry)] MOV AL,[0x138] loads the pending status/control byte at the top of the serial-transmit routine. It is tested (TEST AL,AL); if non-zero the value is ORed with the low nibble of [0x139] and sent via INT 40h AH=0x30 (kernel serial put-char to the Z8530 SCC), then [0x138] is cleared on success. Entry of the ACK/NAK transmit function.  // 01FC A03801 mov al,[0x138]; 01FF test al,al; 0201 jnz 0x204; 0204 mov ah,[0x139]; 020D mov ah,0x30; 020F int 0x40; 0213 mov byte [0x138],0
 000001FC  A03801            mov al,[0x138]
@@ -262,6 +308,12 @@ clear_status_00204:
 clear_00218:
 ;>>>> [INT 40h AH=0x30 serial TX (return)] RET is the exit of the serial-transmit routine (taken via JC 0x218 on INT 40h AH=0x30 error, or after falling through clearing [0x138]). The bytes immediately after (0x219 MOV AH,4 / INT 40h) begin a separate routine that calls the kernel INT 40h AH=4 service to obtain/allocate the host-link buffer segment (returned in ES:BX).  // 0211 jc 0x218; 0213 mov byte [0x138],0; 0218 C3 ret; 0219 B404 mov ah,0x4; 021B CD40 int 0x40; 021D mov ax,es; 021F or ax,bx
 00000218  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Get host buffer + frame  <<<<<<<<<<<<<<<<
+; INT 40h AH=4 fetches the host-link/display buffer (ES:BX); on the first
+; block, record the segment and draw the status-box frame (0x342); then
+; fall into the field drawer.
+;
 dispatch_blk_status_00219:
 00000219  B404              mov ah,0x4
 0000021B  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
@@ -297,6 +349,13 @@ loc_00250:
 00000259  75E3              jnz loc_0023E   ; ->0x23E
 0000025B  5B                pop bx
 0000025C  E8E300            call sub_00342   ; ->0x342
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Status-screen field drawer  <<<<<<<<<<<<<<<<
+; Using a screen-layout descriptor (far ptr at [0xe]), draw the 'Blocks
+; Received', 'Bytes Received', 'Errors' labels and a rotating activity
+; indicator into dual-plane VRAM, and render the running counters as
+; decimals (0x307).
+;
 fread_status_desc_0025F:
 ;>>>> [status-field parameter block (far pointer load)] `les bx,[0xe]` loads ES:BX from the far-pointer stored at offset 0x0E, giving a base for a parameter/coordinate structure. The code immediately reads word fields at [es:bx+0x8], +0xc, +0x10, +0x14, byte-swaps each (xchg al,ah) and uses them as screen offsets (DI) for drawing the status labels/fields. Functions as the screen-layout descriptor table for the download status display rather than a standard DOS environment pointer.  // Followed by mov ax,[es:bx+0x8]/xchg al,ah/mov di,ax/add di,0x1e/call 0x301 and repeated for +0xc,+0x10,+0x14 with different DI offsets.
 0000025F  C41E0E00          les bx,[0xe]
@@ -362,6 +421,11 @@ fread_status_desc_0025F:
 000002F1  E81300            call cursor_status_col_00307   ; ->0x307
 000002F4  E80100            call print_clear_fill_002F8   ; ->0x2F8
 000002F7  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Field-blank helper  <<<<<<<<<<<<<<<<
+; Write four space-words (0x2020) to the char plane to clear a numeric
+; field.
+;
 print_clear_fill_002F8:
 000002F8  B82020            mov ax,0x2020
 000002FB  AB                stosw
@@ -371,12 +435,21 @@ print_clear_fill_002F8:
 000002FF  C3                ret
 status_vram_00300:
 00000300  AA                stosb
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: ASCIIZ -> VRAM  <<<<<<<<<<<<<<<<
+; Copy a NUL-terminated string (DS:SI) into the char plane at ES:DI.
+;
 fread_status_desc_00301:
 00000301  AC                lodsb
 00000302  84C0              test al,al
 ;>>>> [video / string output] jnz 0x300 is the loop test of a zero-terminated string emit routine: lodsb fetches the next char from DS:SI, test al,al / jnz loops back to 0x300 which does stosb (write char to char plane at ES:DI) then lodsb again. It copies an ASCIIZ string to video RAM until the NUL terminator, then ret. Used to print field labels on the status screen.  // 0x300 stosb; 0x301 lodsb; 0x302 test al,al; 0x304 jnz 0x300; 0x306 ret
 00000304  75FA              jnz status_vram_00300   ; ->0x300
 00000306  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Unsigned decimal printer  <<<<<<<<<<<<<<<<
+; Convert a 16/32-bit value to ASCII decimal with leading-zero suppression
+; (divide by 10000/1000/100/10); used for the Blocks/Bytes counters.
+;
 cursor_status_col_00307:
 00000307  33ED              xor bp,bp
 00000309  B91027            mov cx,0x2710
@@ -419,6 +492,11 @@ fread_blk_vram_0033F:
 0000033F  8BC2              mov ax,dx
 ;>>>> [decimal-to-ASCII conversion] ret terminates the single-digit conversion helper (0x32f). Before returning, AX is reloaded from DX (the remainder, 0x33f) so the next call divides the remainder; the emitted digit (al+0x30) was stored via stosb at 0x33e. Returns to the divide-by-powers-of-ten caller chain (0x319/0x32f).  // 0x32f xor dx,dx / div cx / ... / 0x33c add al,0x30 / 0x33e stosb / 0x33f mov ax,dx / 0x341 ret; callers at 0x31c,0x322,0x328 with cx=1000/100/10/1
 00000341  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Status-box frame drawer  <<<<<<<<<<<<<<<<
+; Write the 'I'..'M'-run..';' top border and the 'H'..'M'-run..'<' rows
+; into dual-plane VRAM (char + attribute planes).
+;
 sub_00342:
 00000342  53                push bx
 00000343  83C304            add bx,byte +0x4
