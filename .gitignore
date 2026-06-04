@@ -5,3 +5,5 @@ CLAUDE.md
 __pycache__/
 *.log
 max28_manual.pdf
+*.txt
+mc_work/
