@@ -16,6 +16,19 @@
 ;
 
 ; ---- 0x0000-0x1342 CODE ----
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: STARTUP + MAIN SELF-TEST DRIVER  <<<<<<<<<<<<<<<<
+; MZ startup (INT 21h AH=4Ah resize), build the version/ID string from INT
+; 40h AH=1E/26, compute the ROM additive checksum over 0x1000-byte banks
+; and render it as hex, then run the subsystem test chain (calls at
+; 0x99-0xAE: 0x10E0/0x10F0/0x10FB/0x1224/0x12A2/0x1166). The body that
+; follows is one long flat sequence of per-device tests (PCB I/O ports,
+; the Z8530 SCC at 0x300-0x303, the PCB timers at 0xFF50-0xFF6A, keyboard
+; capture); each failed test sets fail-flag [0x12a]=1 and ORs a shifted
+; bit into a per-subsystem error bitmask
+; ([0xa]/[0x2a]/[0x4a]/[0x6a]/[0xaa]/...). Results are shown by the
+; screen-draw routines below.
+;
 00000000  1E                push ds
 00000001  B83401            mov ax,0x134
 00000004  8ED8              mov ds,ax
@@ -729,6 +742,15 @@ kbd_cursor_fread_00627:
 0000063D  CD40              int 0x40   ; INT 40h AH=0x1e: get/set terminal config
 0000063F  B8004C            mov ax,0x4c00
 00000642  CD21              int 0x21   ; INT 21h AH=0x4c: exit to kernel
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Self-test RESULT/INDICATOR screen  <<<<<<<<<<<<<<<<
+; INT 10h AH=06h clears the 80x30 screen, AH=02h homes the cursor, then
+; walks the row-coordinate table and the per-test error bitmasks
+; ([0xa],[0x2a],...): for each set bit it byte-swaps a screen-offset word
+; and paints a highlighted cell into dual-plane VRAM, drawing the
+; pass/fail indicator grid. Also renders the captured keyboard scancode
+; table.
+;
 cursor_00644:
 00000644  06                push es
 00000645  53                push bx
@@ -989,6 +1011,13 @@ kbd_fread_vram_008C2:
 000008C3  B82400            mov ax,0x24
 000008C6  E8B307            call kbd_fread_vram_0107C   ; ->0x107C
 000008C9  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Failure-blink display  <<<<<<<<<<<<<<<<
+; Animates the failure indicator using the blink counters [0x12c]/[0x12e]
+; and re-invokes the result-screen draw (0x644). Reached from the menu
+; dispatch when normal mode is active and the cumulative error flag
+; [0x12a] bit0 is set.
+;
 cursor_008CA:
 000008CA  F7062C010100      test word [0x12c],0x1
 000008D0  751B              jnz cursor_008ED   ; ->0x8ED
@@ -1008,6 +1037,11 @@ cursor_008ED:
 cursor_00900:
 00000900  E841FD            call cursor_00644   ; ->0x644
 00000903  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Run-mode screen handler (default path)  <<<<<<<<<<<<<<<<
+; Screen refresh handler invoked from the menu dispatcher (0xFAB) for the
+; default/test display path.
+;
 dispatch_fhandle_00904:
 00000904  06                push es
 00000905  53                push bx
@@ -1041,6 +1075,11 @@ loc_0092F:
 0000093C  B80600            mov ax,0x6
 0000093F  E83A07            call kbd_fread_vram_0107C   ; ->0x107C
 00000942  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Run-mode screen handler (no-error path)  <<<<<<<<<<<<<<<<
+; Screen refresh handler invoked from the menu dispatcher (0xFDC) for
+; config-mode 0 with no pending error.
+;
 dispatch_fhandle_00943:
 00000943  06                push es
 00000944  53                push bx
@@ -1073,6 +1112,13 @@ loc_00971:
 0000097F  B80600            mov ax,0x6
 00000982  E8F706            call kbd_fread_vram_0107C   ; ->0x107C
 00000985  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Setup-menu screen - mode 1  <<<<<<<<<<<<<<<<
+; Sets the video mode (INT 10h AX=0x37), homes the cursor, and copies a
+; 7-byte key-label string from the scancode-name table at [0x140] (index =
+; config byte [0x13f]-0x3c, bounds-checked) into VRAM. Drawn when menu
+; mode byte [0x13e]==1.
+;
 cursor_00986:
 00000986  06                push es
 00000987  53                push bx
@@ -1132,6 +1178,13 @@ loc_009EB:
 000009F3  4A                dec dx
 000009F4  75CB              jnz loc_009C1   ; ->0x9C1
 000009F6  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Setup-menu screen - mode 2  <<<<<<<<<<<<<<<<
+; Per-row dual-plane VRAM screen clear/draw: walks the row-coordinate
+; table (es lodsw, byte-swap to DI) and fills 80 columns with space (char
+; plane) + default attribute (attribute plane, 0x8000 below), then pokes
+; box-corner glyphs. Drawn when menu mode byte [0x13e]==2.
+;
 dispatch_fhandle_009F7:
 000009F7  06                push es
 000009F8  53                push bx
@@ -1262,6 +1315,15 @@ loc_00B29:
 00000B3E  26C6453BC1        mov byte [es:di+0x3b],0xc1
 00000B43  26C6453EC1        mov byte [es:di+0x3e],0xc1
 00000B48  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Dual-plane VRAM box/row DRAW primitive  <<<<<<<<<<<<<<<<
+; Core screen-draw helper (DX = attribute/glyph selector). Reads a
+; screen-offset word from the coordinate table at ES:BX, byte-swaps it to
+; a linear offset in DI, adds SI, then fills [0x132] cells writing
+; attribute DH to the attribute plane (ES:DI-0x8000) and spaces to the
+; char plane. Called repeatedly with SI advanced by the column width
+; [0x132]/[0x134] to lay out the setup-menu frame.
+;
 video_fill_vram_00B49:
 00000B49  53                push bx
 00000B4A  50                push ax
@@ -1320,6 +1382,13 @@ fill_vram_attr_00BB1:
 00000BBA  58                pop ax
 00000BBB  5B                pop bx
 00000BBC  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Setup-menu ROW draw - mode 3  <<<<<<<<<<<<<<<<
+; Draws one bordered text line: left space-fill, then copies a label
+; string from [0x15d] into the char plane with attribute DL (CX=[0x136]),
+; then right space-fill to the column width [0x138]. Drawn when menu mode
+; byte [0x13e]==3.
+;
 fill_vram_attr_00BBD:
 00000BBD  06                push es
 00000BBE  53                push bx
@@ -1587,6 +1656,12 @@ loc_00E50:
 00000E96  EBC3              jmp short 0xe5b
 cursor_fill_vram_00E98:
 00000E98  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Software delay / settle helper  <<<<<<<<<<<<<<<<
+; Spin loop (CX=0x14, CX preserved) providing peripheral write-recovery
+; time on the slow external bus between an OUT and the following IN.
+; Called by the SCC/video register sequences.
+;
 fread_00E99:
 00000E99  8BC1              mov ax,cx
 00000E9B  B91400            mov cx,0x14
@@ -1595,6 +1670,13 @@ sub_00E9E:
 00000E9E  E2FE              loop sub_00E9E   ; ->0xE9E
 00000EA0  8BC8              mov cx,ax
 00000EA2  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: M76V020 video register write+verify  <<<<<<<<<<<<<<<<
+; Writes BL to video control port 0x342, delays (0xE99), reads the 0x340
+; status port, masks 0xE8 and compares to BH. Returns ZF = matched. Used
+; by the early video-presence tests (BX patterns
+; 0x4057/0x805d/0x2075/...).
+;
 fread_status_00EA3:
 00000EA3  BA4203            mov dx,0x342
 00000EA6  8AC3              mov al,bl
@@ -1605,16 +1687,38 @@ fread_status_00EA3:
 00000EB0  24E8              and al,0xe8
 00000EB2  3AC7              cmp al,bh
 00000EB4  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Register WRITE-PAIR helper (Z8530 SCC)  <<<<<<<<<<<<<<<<
+; OUT DX,AL (register pointer = AL) / XCHG AL,AH / OUT DX,AL (data = AH).
+; Writes one WRn=val pair to the port the caller put in DX - the SCC
+; control port 0x301 for all the WR0..WR15 init bursts. (The inline
+; 'M76V020 video' port tags on these three OUTs are an artifact of the
+; comment generator not tracking DX across the CALL; the real port is the
+; caller's.)
+;
 init_00EB5:
 00000EB5  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
 00000EB6  86C4              xchg al,ah
 00000EB8  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
 00000EB9  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Register READ helper (Z8530 RR0)  <<<<<<<<<<<<<<<<
+; Selects register 0 (OUT DX,AL with AL=0) then IN AL,DX - reads the SCC
+; RR0 status register when the caller set DX=0x301. Used by every SCC
+; status poll (test al,0x04/0x20/0x40/0x80).
+;
 cksum_fread_00EBA:
 00000EBA  B000              mov al,0x0
 00000EBC  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
 00000EBD  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00000EBE  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Keyboard / setup-menu key handler  <<<<<<<<<<<<<<<<
+; INT 16h AH=0 read: ESC aborts to 0x627; Space and the arrow/cursor keys
+; (0x12/0x13) navigate and toggle the setup-menu state; mode byte [0x13e]
+; selects the field; config byte [0x13f] is XOR-toggled and pushed via INT
+; 40h AH=1E. Returns DX status.
+;
 kbd_cursor_fread_00EBF:
 00000EBF  BA0100            mov dx,0x1
 00000EC2  B400              mov ah,0x0
@@ -1758,6 +1862,13 @@ dispatch_fhandle_00FEF:
 00000FEF  E8D8F8            call cursor_008CA   ; ->0x8CA
 dispatch_fhandle_00FF2:
 00000FF2  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Cooperative POLL / yield pump  <<<<<<<<<<<<<<<<
+; The idle pump called all over the self-test: INT 40h AH=0 (yield), INT
+; 16h AH=1 (key peek -> 0xEBF handler), INT 40h AH=4 (get next host record
+; -> dispatch via 0xFAB/0xFDC). Keeps the screen and key handling live
+; while tests run.
+;
 hexprint_cksum_dispatch_00FF3:
 00000FF3  B400              mov ah,0x0
 00000FF5  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
@@ -1802,6 +1913,12 @@ loc_0102A:
 00001042  11066002          adc [0x260],ax
 00001046  61                popa
 00001047  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Poll tick-deadline (variant A)  <<<<<<<<<<<<<<<<
+; INT 1Ah read tick, compare against the [0x25a]/[0x25e] target with wrap
+; handling; returns ZF=0 while still waiting, ZF=1 when the delay has
+; elapsed. Used as the loop condition in the SCC/timer poll loops.
+;
 fread_status_01048:
 00001048  60                pusha
 00001049  32E4              xor ah,ah
@@ -1830,6 +1947,12 @@ loc_01078:
 00001078  33F6              xor si,si
 0000107A  61                popa
 0000107B  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Start a BIOS-tick timed delay  <<<<<<<<<<<<<<<<
+; INT 1Ah AH=0 snapshots the tick count into [0x264]/[0x268] and adds AX
+; ticks to form a deadline. Paired with the 0x10A4 poll. (AX=0 sets an
+; immediate/expired deadline.)
+;
 kbd_fread_vram_0107C:
 0000107C  60                pusha
 0000107D  8BD8              mov bx,ax
@@ -1848,6 +1971,11 @@ loc_0109C:
 0000109C  C7066A020200      mov word [0x26a],0x2
 000010A2  61                popa
 000010A3  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Poll tick-deadline (variant B)  <<<<<<<<<<<<<<<<
+; As 0x1048 but against the [0x264]/[0x268] target set by 0x107C; returns
+; ZF when the timed delay elapsed.
+;
 sub_010A4:
 000010A4  60                pusha
 000010A5  BE0100            mov si,0x1
@@ -1879,23 +2007,41 @@ loc_010DC:
 000010DE  61                popa
 ;>>>> [timer/PCB-port] ret terminating a polling/timeout wait subroutine. The body (0x10C8-0x10DE) repeatedly subtracts DX from the timer-snapshot values [0x264] and [0x268] and loops (popa/ret on match), implementing a busy-wait until an elapsed-timer threshold is reached; this ret is the timeout/exit after popa restores all registers.  // mov ax,[0x268]/sub ax,dx/ja; mov ax,[0x264]/sub ax,dx/jna; xor si,si; popa; ret at 0x10DF
 000010DF  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Save PCB reg 0xFF08  <<<<<<<<<<<<<<<<
+; Read PCB chip-select/refresh register 0xFF08 into [0x282] (companion
+; restore at 0x10E8).
+;
 hexprint_cksum_dispatch_010E0:
 000010E0  BA08FF            mov dx,0xff08
 000010E3  ED                in ax,dx   ; PCB register
 000010E4  A38202            mov [0x282],ax
 000010E7  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Restore PCB reg 0xFF08  <<<<<<<<<<<<<<<<
+; Write the saved [0x282] back to PCB port 0xFF08.
+;
 fread_010E8:
 000010E8  BA08FF            mov dx,0xff08
 000010EB  A18202            mov ax,[0x282]
 ;>>>> [timer/PCB-port] out dx,ax writes the saved value [0x282] back to 80C188EB PCB port 0xFF08. This is the restore half of a save/restore pair: 0x10E0 reads 0xFF08 into [0x282], and this routine (0x10E8) writes it back unchanged, restoring the port state after a test.  // 0x10E8: mov dx,0xff08 / mov ax,[0x282] / out dx,ax / ret; companion 0x10E0 reads and stores [0x282]
 000010EE  EF                out dx,ax   ; PCB register
 000010EF  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Set PCB reg 0xFF08 test bits  <<<<<<<<<<<<<<<<
+; Write [0x282] | 0xD4 to PCB port 0xFF08 (enable the bits the test
+; needs); called twice in the test chain.
+;
 hexprint_cksum_dispatch_010F0:
 000010F0  BA08FF            mov dx,0xff08
 000010F3  A18202            mov ax,[0x282]
 000010F6  0DD400            or ax,0xd4
 000010F9  EF                out dx,ax   ; PCB register
 000010FA  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Save+set PCB I/O-port reg 0xFF1E  <<<<<<<<<<<<<<<<
+; Save 0xFF1E into [0x288], then write 0x18 (companion restore at 0x110A).
+;
 hexprint_cksum_dispatch_010FB:
 000010FB  BA1EFF            mov dx,0xff1e
 000010FE  ED                in ax,dx   ; PCB I/O Port Unit
@@ -1904,11 +2050,21 @@ hexprint_cksum_dispatch_010FB:
 00001105  B81800            mov ax,0x18
 00001108  EF                out dx,ax   ; PCB I/O Port Unit
 00001109  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Restore PCB reg 0xFF1E  <<<<<<<<<<<<<<<<
+; Write the saved [0x288] back to PCB port 0xFF1E.
+;
 sub_0110A:
 0000110A  BA1EFF            mov dx,0xff1e
 0000110D  A18802            mov ax,[0x288]
 00001110  EF                out dx,ax   ; PCB I/O Port Unit
 00001111  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: INT 14h handler (serial ISR)  <<<<<<<<<<<<<<<<
+; Resident handler installed by 0x1166: reads timer 0xFF68, appends the
+; byte to the capture buffer [0x1e7+] (<=0x36), issues PCB EOI
+; (0xFF02=0x8000), IRET.
+;
 00001112  60                pusha
 00001113  1E                push ds
 00001114  B83401            mov ax,0x134
@@ -1929,6 +2085,11 @@ loc_01131:
 0000113C  1F                pop ds
 0000113D  61                popa
 0000113E  CF                iret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: INT 15h handler  <<<<<<<<<<<<<<<<
+; Resident handler installed by 0x1166: drives PCB timer 0xFF6A from the
+; pattern table [0x1af+] (<=0x36 steps), PCB EOI, IRET.
+;
 0000113F  60                pusha
 00001140  1E                push ds
 00001141  B83401            mov ax,0x134
@@ -1947,6 +2108,12 @@ loc_0115C:
 00001163  1F                pop ds
 00001164  61                popa
 00001165  CF                iret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Install INT 14h/15h handlers  <<<<<<<<<<<<<<<<
+; Hook INT 14h (->0x1112) and INT 15h (->0x113F) into the IVT, saving the
+; prior vectors to [0x272]/[0x274] and [0x276]/[0x278]; snapshot timer
+; regs 0xFF60/0xFF64 to [0x27e]/[0x280].
+;
 hexprint_cksum_dispatch_01166:
 00001166  06                push es
 00001167  50                push ax
@@ -1990,6 +2157,11 @@ hexprint_cksum_dispatch_01166:
 000011BE  ED                in ax,dx   ; PCB Timer/Counter Unit
 000011BF  A38002            mov [0x280],ax
 000011C2  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Restore INT 14h/15h handlers  <<<<<<<<<<<<<<<<
+; Teardown of 0x1166: restore the saved INT 14h/15h IVT vectors and
+; reprogram timers 0xFF60/0xFF64 from [0x27e]/[0x280].
+;
 sub_011C3:
 000011C3  06                push es
 000011C4  50                push ax
@@ -2029,6 +2201,11 @@ sub_011C3:
 00001209  A18002            mov ax,[0x280]
 0000120C  EF                out dx,ax   ; PCB Timer/Counter Unit
 0000120D  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: INT 0Eh handler  <<<<<<<<<<<<<<<<
+; Resident handler installed by 0x1224: sets flag [0x259]=1, PCB EOI
+; (0xFF02=0x8000), IRET.
+;
 0000120E  60                pusha
 0000120F  1E                push ds
 00001210  B83401            mov ax,0x134
@@ -2040,6 +2217,11 @@ sub_011C3:
 00001221  1F                pop ds
 00001222  61                popa
 00001223  CF                iret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Install INT 0Eh handler  <<<<<<<<<<<<<<<<
+; Hook INT 0Eh (->0x120E) into the IVT, saving the prior vector to
+; [0x27a]/[0x27c]; save+set PCB I/O-port reg 0xFF1C (=0x07).
+;
 hexprint_cksum_dispatch_01224:
 00001224  06                push es
 00001225  50                push ax
@@ -2065,6 +2247,11 @@ hexprint_cksum_dispatch_01224:
 00001255  B80700            mov ax,0x7
 00001258  EF                out dx,ax   ; PCB I/O Port Unit
 00001259  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Restore INT 0Eh handler  <<<<<<<<<<<<<<<<
+; Teardown of 0x1224: restore the saved INT 0Eh vector and PCB reg 0xFF1C
+; from [0x286].
+;
 sub_0125A:
 0000125A  06                push es
 0000125B  50                push ax
@@ -2088,6 +2275,12 @@ sub_0125A:
 0000127B  A18602            mov ax,[0x286]
 0000127E  EF                out dx,ax   ; PCB I/O Port Unit
 0000127F  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: INT 0Ch handler  <<<<<<<<<<<<<<<<
+; Resident handler installed by 0x12A2: sets flag [0x257]=1, drains the
+; SCC ch-B receiver (call 0x131C), PCB EOI, writes SCC WR0=0x38 (reset),
+; IRET.
+;
 00001280  60                pusha
 00001281  1E                push ds
 00001282  B83401            mov ax,0x134
@@ -2103,6 +2296,11 @@ sub_0125A:
 0000129F  1F                pop ds
 000012A0  61                popa
 000012A1  CF                iret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Install INT 0Ch handler  <<<<<<<<<<<<<<<<
+; Hook INT 0Ch (->0x1280) into the IVT, saving the prior vector to
+; [0x26e]/[0x270]; save PCB I/O-port reg 0xFF18 to [0x284].
+;
 hexprint_cksum_dispatch_012A2:
 000012A2  06                push es
 000012A3  50                push ax
@@ -2126,6 +2324,11 @@ hexprint_cksum_dispatch_012A2:
 000012CC  ED                in ax,dx   ; PCB I/O Port Unit
 000012CD  A38402            mov [0x284],ax
 000012D0  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: Restore INT 0Ch handler  <<<<<<<<<<<<<<<<
+; Teardown of 0x12A2: restore the saved INT 0Ch vector and PCB reg 0xFF18
+; from [0x284].
+;
 sub_012D1:
 000012D1  06                push es
 000012D2  50                push ax
@@ -2146,6 +2349,12 @@ sub_012D1:
 000012F2  A18402            mov ax,[0x284]
 000012F5  EF                out dx,ax   ; PCB I/O Port Unit
 000012F6  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: SCC ch-B receive drain (loopback)  <<<<<<<<<<<<<<<<
+; Poll SCC RR0 bit2 via 0xEBA; for each ready byte write the next pattern
+; byte [0x1af+] out the ch-B data port 0x303 (<=0x36), advancing [0x1e5].
+; Feeds the loopback transmit side of the SCC self-test.
+;
 sub_012F7:
 000012F7  BA0103            mov dx,0x301
 000012FA  B000              mov al,0x0
@@ -2162,6 +2371,13 @@ sub_012F7:
 00001319  EBDC              jmp short 0x12f7
 loc_0131B:
 0000131B  C3                ret
+;
+; >>>>>>>>>>>>>>>>  ROUTINE: SCC ch-B receive capture (loopback)  <<<<<<<<<<<<<<<<
+; Poll SCC RR0 bit0 via 0xEBA; read each received byte from ch-B data port
+; 0x303 into the capture buffer [0x21f+] (<=0x36), advancing [0x255]. The
+; captured bytes are later compared against the sent pattern to verify the
+; loopback.
+;
 sub_0131C:
 0000131C  BA0103            mov dx,0x301
 0000131F  B000              mov al,0x0
