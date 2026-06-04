@@ -6,9 +6,10 @@ A-Series** terminal that speaks the Poll/Select protocol with **T 27** block-mod
 emulation and a built-in **DEC VT220 / ANSI** emulator. (Link Technologies was
 later absorbed by Wyse, which is why the video silicon is a Wyse part.)
 
-The subject is the SBC's **64 KiB boot ROM** (`M27C512@DIP28.BIN`). The terminal's
-main application firmware lives in a separate, soldered **256 KiB Intel flash**
-(two 28F001 at CPU physical `0x80000-0xBFFFF`) that is **not** included here.
+The subject is the SBC's **64 KiB boot ROM**; this repo holds its disassembly and
+analysis (the raw ROM image itself is not included). The terminal's main
+application firmware lives in a separate, soldered **256 KiB Intel flash** (two
+28F001 at CPU physical `0x80000-0xBFFFF`), which is also not included.
 
 ## Hardware (from the board + the ROM's chip-select programming)
 
@@ -42,21 +43,21 @@ session communicates over the **AUX SERIAL** port (default 9600 8N1).
 
 ## Contents
 
-- `M27C512@DIP28.BIN` — the dumped 64 KiB boot ROM.
-- `M27C512_disasm.asm` — full disassembly (code decoded, data as hex+ASCII).
-- `M27C512_disasm.labeled.asm` / `.annotated.asm` — symbol-labeled / annotated.
-- `codedata_map.txt` — heuristic code/data region map.
-- `KERNEL_API.md` — the `INT 40h` kernel API table + `INT 21h`/`INT 4Fh` notes.
+- `M27C512_disasm.asm` — full disassembly of the boot ROM (code decoded, data as hex+ASCII).
+- `M27C512_disasm.labeled.asm` / `.annotated.asm` — symbol-labeled / annotated variants.
+- `KERNEL_API.md` — the `INT 40h` kernel API table + `INT 21h` / `INT 4Fh` notes.
 - `VIDEO_CONTROLLER.md` — the OKI M76V020 / Wyse gate-array display controller.
 - `CUSTOM_ROM_GUIDE.md` — how to build and run a custom boot ROM on this SBC.
-- `flashdump.asm` — a custom boot ROM that dumps the 28F001 flash out AUX SERIAL
-  as Motorola S-records (build with `nasm -f bin`).
-- `extracted_fs/` — the embedded filesystem members + their disassemblies.
-- `rom_mc_*.txt` / `*_mc_summary.md` / `*.coop.txt` — structure map and
-  cross-verified per-line annotations.
+- `flashdump.asm` / `flashdump.bin` — a custom boot ROM (source + assembled 64 KiB
+  image) that dumps the 28F001 flash out AUX SERIAL as Motorola S-records (`nasm -f bin`).
+- `rom_mc_summary.md` / `modules_mc_summary.md` — summaries of the boot ROM and the
+  three embedded modules.
+- `extracted_fs/` — the embedded filesystem members (`*.EXE`, `CONFIG.BLK`,
+  `CONFIG.SYS`, `MANIFEST.json`) and their disassemblies (`.asm` / `.full.asm` /
+  `.labeled.asm`).
 
 ## Legal
 
-The boot-ROM dump and the embedded modules are the manufacturer's firmware,
-included here for interoperability and preservation research only. All
-trademarks and firmware are the property of their respective owners.
+The disassemblies and the embedded modules here are derived from the
+manufacturer's firmware, provided for interoperability and preservation research
+only. All trademarks and firmware are the property of their respective owners.
