@@ -1,0 +1,1079 @@
+=== SAMPLE 1/40  (address 0x00000D9B) ===
+     00000D75  03363201          add si,[0x132]
+     00000D79  BA2521            mov dx,0x2125
+     00000D7C  E8CAFD            call 0xb49
+     00000D7F  03363201          add si,[0x132]
+     00000D83  BA0D09            mov dx,0x90d
+     00000D86  E8C0FD            call 0xb49
+     00000D89  03363201          add si,[0x132]
+     00000D8D  03363401          add si,[0x134]
+     00000D91  BA1501            mov dx,0x115
+     00000D94  E8B2FD            call 0xb49
+     00000D97  03363201          add si,[0x132]
+     ;>>>> [R1] This line loads DX with 0x2135, which is likely a pointer to a string or data structure used in a manufacturing test display routine, called via the INT 21h AH=9 print $-string service at 0xb49.
+>>>> 00000D9B  BA3521            mov dx,0x2135
+     00000D9E  E8A8FD            call 0xb49
+     00000DA1  03363201          add si,[0x132]
+     00000DA5  BA1D09            mov dx,0x91d
+     00000DA8  E89EFD            call 0xb49
+     00000DAB  050300            add ax,0x3
+     00000DAE  BE0100            mov si,0x1
+     00000DB1  BA0703            mov dx,0x307
+     ;>>>> [R3] This calls subroutine 0xB49 with DX=0x307, which is likely a string-printing or I/O routine (possibly INT 21h AH=9 or a custom INT 40h service) to output a message or prompt during the setup-menu UI.
+     00000DB4  E892FD            call 0xb49
+     00000DB7  03363201          add si,[0x132]
+     00000DBB  BA2723            mov dx,0x2327
+     00000DBE  E888FD            call 0xb49
+
+=== SAMPLE 2/40  (address 0x0000020F) ===
+     ;>>>> [R3] This `out dx,al` writes a byte to the Z8530 SCC data register (I/O 0x300-0x303) as part of a loop that sends sync characters (WR6/WR7) and checks the checksum of the transmitted data.
+     00000204  EE                out dx,al
+     00000205  EE                out dx,al
+     00000206  EC                in al,dx
+     00000207  02D8              add bl,al
+     00000209  8AC7              mov al,bh
+     0000020B  EE                out dx,al
+     0000020C  EE                out dx,al
+     ;>>>> [R4] The line is an `out dx,al` instruction that writes a byte to a port (likely the SCC data or control register) as part of a repeated read-back verification loop that sums three reads into BL and compares to 0x78.
+     0000020D  EE                out dx,al
+     0000020E  EC                in al,dx
+     ;>>>> [R1] This line adds BL to AL as part of a loop that reads from a Z8530 SCC register (I/O 0x300-0x303) and accumulates a checksum or test pattern result, compared against 0x78 to verify SCC data integrity.
+>>>> 0000020F  02D8              add bl,al
+     00000211  80FB78            cmp bl,0x78
+     00000214  740C              jz 0x222
+     00000216  B80100            mov ax,0x1
+     00000219  A32A01            mov [0x12a],ax
+     ;>>>> [R3] After a checksum test (sum of two reads from I/O 0x342/0x343 compared to 0x78), if the sum is wrong, it shifts AX left by 1 and ORs the result into [0x4a] to record a video RAM test failure.
+     0000021C  D1E0              shl ax,1
+     0000021E  09064A00          or [0x4a],ax
+     00000222  B80016            mov ax,0x1600
+     00000225  CD40              int 0x40
+     00000227  BA56FF            mov dx,0xff56
+     0000022A  ED                in ax,dx
+     0000022B  8BC8              mov cx,ax
+
+=== SAMPLE 3/40  (address 0x00000077) ===
+     0000005F  33F6              xor si,si
+     00000061  AC                lodsb
+     00000062  03D0              add dx,ax
+     00000064  0BF6              or si,si
+     00000066  75F9              jnz 0x61
+     00000068  81FB00E0          cmp bx,0xe000
+     0000006C  7508              jnz 0x76
+     0000006E  8BCA              mov cx,dx
+     00000070  81C30010          add bx,0x1000
+     00000074  EBE5              jmp short 0x5b
+     00000076  58                pop ax
+     ;>>>> [R1] This line sets DS to AX, establishing a segment base for a checksum verification routine that computes a 16-bit sum over a memory region (0xE000-0xEFFF) and converts nibbles to hex ASCII characters for display.
+>>>> 00000077  8ED8              mov ds,ax
+     00000079  8EC0              mov es,ax
+     0000007B  8D3EAB01          lea di,[0x1ab]
+     ;>>>> [R1] This compares CX (a computed checksum or length) with DX (a running sum) to verify data integrity, then converts the resulting 16-bit value into four hex digits using a lookup table at [0x185] for display or diagnostic output.
+     0000007F  3BCA              cmp cx,dx
+     00000081  7402              jz 0x85
+     00000083  03D1              add dx,cx
+     00000085  B90400            mov cx,0x4
+     00000088  B80F00            mov ax,0xf
+     0000008B  C1C204            rol dx,byte 0x4
+     0000008E  23C2              and ax,dx
+     ;>>>> [R1] This line moves SI to AX (the masked nibble from DX), using it as an index into a hex-digit lookup table at [SI+0x185], which is the core of a nibble-to-ASCII conversion algorithm for displaying register or memory values.
+     00000090  8BF0              mov si,ax
+
+=== SAMPLE 4/40  (address 0x00000FA8) ===
+     00000F81  C3                ret
+     00000F82  803E3E0103        cmp byte [0x13e],0x3
+     00000F87  75BF              jnz 0xf48
+     00000F89  8336300107        xor word [0x130],byte +0x7
+     00000F8E  8336320118        xor word [0x132],byte +0x18
+     00000F93  8336340104        xor word [0x134],byte +0x4
+     ;>>>> [R3] XORing the word at [0x136] with 0x06 — part of a sequence that toggles keyboard scan-code translation flags or setup-menu configuration bytes.
+     00000F98  8336360106        xor word [0x136],byte +0x6
+     ;>>>> [R1] This line XORs the word at [0x138] with 0x01, toggling a flag or counter used in a keyboard scancode translation or setup-menu navigation state machine.
+     00000F9D  8336380101        xor word [0x138],byte +0x1
+     00000FA2  81363A01CC00      xor word [0x13a],0xcc
+     ;>>>> [R1] This line ORs DX with itself, setting flags to test if DX is zero, as part of a return from a function that checks the terminal’s configuration byte at [0x13E] and conditionally toggles video attribute bits (e.g., XOR operations on [0x130]-[0x13A]) for setup-menu UI.
+>>>> 00000FA8  0BD2              or dx,dx
+     00000FAA  C3                ret
+     00000FAB  803E3E0101        cmp byte [0x13e],0x1
+     00000FB0  741A              jz 0xfcc
+     00000FB2  803E3E0102        cmp byte [0x13e],0x2
+     00000FB7  7417              jz 0xfd0
+     00000FB9  803E3E0103        cmp byte [0x13e],0x3
+     00000FBE  7414              jz 0xfd4
+     00000FC0  F7062A010100      test word [0x12a],0x1
+     00000FC6  7510              jnz 0xfd8
+     00000FC8  E839F9            call 0x904
+     00000FCB  C3                ret
+     ;>>>> [R5] This line calls subroutine 0x986, which is selected when byte [0x13E] equals 1, indicating a specific test mode (e.g., keyboard or serial loopback test) in the manufacturing test menu.
+
+=== SAMPLE 5/40  (address 0x00000586) ===
+     0000056C  09064A00          or [0x4a],ax
+     00000570  BA60FF            mov dx,0xff60
+     00000573  B81F80            mov ax,0x801f
+     00000576  EF                out dx,ax
+     00000577  BA64FF            mov dx,0xff64
+     0000057A  B82B00            mov ax,0x2b
+     0000057D  EF                out dx,ax
+     0000057E  BA66FF            mov dx,0xff66
+     00000581  ED                in ax,dx
+     00000582  BA68FF            mov dx,0xff68
+     00000585  ED                in ax,dx
+     ;>>>> [R1] This line loads DX with 0xFF66 to read the 80C188EB timer 2 count register, part of a timer initialization sequence that configures timer 1 (0xFF60) and timer 2 (0xFF64) for manufacturing test timing exercises.
+>>>> 00000586  BA66FF            mov dx,0xff66
+     00000589  ED                in ax,dx
+     ;>>>> [R5] This line sets `dx` to `0xff68` (the 80C188EB timer 2 count register) and reads its value into `ax`, as part of a timer/port exercise that reads multiple timer/counter registers (at `0xff60`–`0xff6a`) to verify the hardware timer and chip-select functionality during manufacturing self-test.
+     0000058A  BA68FF            mov dx,0xff68
+     0000058D  ED                in ax,dx
+     0000058E  BA08FF            mov dx,0xff08
+     00000591  ED                in ax,dx
+     ;>>>> [R1] This line masks bit 2 (0xFFFB) of the value read from I/O port 0xFF08 (80C188EB chip-select control register), clearing the chip-select enable for a specific memory region, likely to disable flash or RAM during a timer/port exercise.
+     00000592  25FBFF            and ax,0xfffb
+     00000595  EF                out dx,ax
+     00000596  E85A0A            call 0xff3
+     00000599  C606580200        mov byte [0x258],0x0
+     0000059E  C7061D020000      mov word [0x21d],0x0
+
+=== SAMPLE 6/40  (address 0x000004DD) ===
+     ;>>>> [R4] This is a serial port initialization test that checks the Z8530 SCC status register at I/O port 0x301 for bit 7 (receive error/status), then calls `INT 40h` with `AX=0x1601` to perform a system function, followed by a loop calling timing and test routines.
+     000004C2  B80200            mov ax,0x2
+     000004C5  E8640B            call 0x102c
+     000004C8  E8280B            call 0xff3
+     000004CB  E87A0B            call 0x1048
+     000004CE  75F8              jnz 0x4c8
+     000004D0  BA0103            mov dx,0x301
+     000004D3  B000              mov al,0x0
+     000004D5  E8E209            call 0xeba
+     000004D8  A98000            test ax,0x80
+     000004DB  740C              jz 0x4e9
+     ;>>>> [R1] This line stores a flag (AX=1) to memory at 0x12a, then shifts it left by 1 and ORs it into a bitmask at 0xaa, indicating a detected SCC status condition (likely the DCD or CTS modem signal on the Z8530 at I/O 0x301).
+>>>> 000004DD  B80100            mov ax,0x1
+     000004E0  A32A01            mov [0x12a],ax
+     000004E3  D1E0              shl ax,1
+     000004E5  0906AA00          or [0xaa],ax
+     000004E9  C606570200        mov byte [0x257],0x0
+     000004EE  C70655020000      mov word [0x255],0x0
+     000004F4  B83600            mov ax,0x36
+     ;>>>> [R2] This calls a subroutine at 0x102c with AX=0x36, which is probably a delay or timer setup function used in a keyboard or serial polling loop.
+     000004F7  E8320B            call 0x102c
+     000004FA  C706E5010000      mov word [0x1e5],0x0
+     00000500  E8F40D            call 0x12f7
+     00000503  A15502            mov ax,[0x255]
+     00000506  3D3600            cmp ax,0x36
+
+=== SAMPLE 7/40  (address 0x0000046B) ===
+     00000450  E8620A            call 0xeb5
+     00000453  B80030            mov ax,0x3000
+     00000456  E85C0A            call 0xeb5
+     00000459  B80114            mov ax,0x1401
+     ;>>>> [R1] This line calls subroutine 0xEB5 with AX=0x1401, which is part of a sequence writing WR6/WR7 sync character registers on the Z8530 SCC at I/O 0x300-0x303 to configure synchronous HDLC framing for the host link.
+     0000045C  E8560A            call 0xeb5
+     0000045F  BA0EFF            mov dx,0xff0e
+     00000462  ED                in ax,dx
+     00000463  A91000            test ax,0x10
+     00000466  7410              jz 0x478
+     00000468  B80100            mov ax,0x1
+     ;>>>> [R1] This line stores a flag (AX=1) to memory at 0x12a, then shifts it left by 2 and ORs it into a bitmask at 0x4a, recording that a timer or power-management register (I/O 0xFF0E) bit 4 was set, indicating a specific hardware status.
+>>>> 0000046B  A32A01            mov [0x12a],ax
+     0000046E  C1E002            shl ax,byte 0x2
+     00000471  09064A00          or [0x4a],ax
+     00000475  EB12              jmp short 0x489
+     00000477  90                nop
+     00000478  BA0103            mov dx,0x301
+     0000047B  B80909            mov ax,0x909
+     0000047E  E8340A            call 0xeb5
+     00000481  BA08FF            mov dx,0xff08
+     00000484  ED                in ax,dx
+     00000485  25EFFF            and ax,0xffef
+     00000488  EF                out dx,ax
+     ;>>>> [R3] This line accesses the 80C188EB timer 1 control register at I/O 0xFF56 to clear bit 6 (presumably disabling or resetting the timer), as part of a timer/port exercise in the manufacturing self-test.
+
+=== SAMPLE 8/40  (address 0x000002A1) ===
+     00000283  B000              mov al,0x0
+     00000285  E8320C            call 0xeba
+     00000288  A820              test al,0x20
+     0000028A  750D              jnz 0x299
+     0000028C  B80100            mov ax,0x1
+     0000028F  A32A01            mov [0x12a],ax
+     00000292  C1E004            shl ax,byte 0x4
+     00000295  09066A00          or [0x6a],ax
+     00000299  B80116            mov ax,0x1601
+     0000029C  CD40              int 0x40
+     0000029E  E8F80B            call 0xe99
+     ;>>>> [R1] This line loads AL=0 and calls a subroutine at 0xeba to read the Z8530 SCC register (I/O 0x301), then tests bit 5 (0x20) to check for a receive or sync status condition, branching to set a flag at 0x12a and OR a shifted bit into a mask at 0x6a.
+>>>> 000002A1  B000              mov al,0x0
+     000002A3  E8140C            call 0xeba
+     000002A6  A820              test al,0x20
+     000002A8  740D              jz 0x2b7
+     000002AA  B80100            mov ax,0x1
+     000002AD  A32A01            mov [0x12a],ax
+     000002B0  C1E005            shl ax,byte 0x5
+     000002B3  09066A00          or [0x6a],ax
+     000002B7  B80562            mov ax,0x6205
+     000002BA  E8F80B            call 0xeb5
+     000002BD  E8D90B            call 0xe99
+     000002C0  B000              mov al,0x0
+     000002C2  E8F50B            call 0xeba
+
+=== SAMPLE 9/40  (address 0x00000F7F) ===
+     00000F62  7605              jna 0xf69
+     00000F64  C6063E0101        mov byte [0x13e],0x1
+     00000F69  0BD2              or dx,dx
+     00000F6B  C3                ret
+     00000F6C  803E3E0102        cmp byte [0x13e],0x2
+     00000F71  750F              jnz 0xf82
+     00000F73  A03F01            mov al,[0x13f]
+     00000F76  3474              xor al,0x74
+     00000F78  A23F01            mov [0x13f],al
+     00000F7B  B41E              mov ah,0x1e
+     00000F7D  CD40              int 0x40
+     ;>>>> [R1] This line performs `or dx,dx` to test if DX is zero, then returns (ret), serving as a conditional exit point in a keyboard-scancode or setup-menu handler that checks a mode byte at 0x13e before toggling attribute or video parameters.
+>>>> 00000F7F  0BD2              or dx,dx
+     00000F81  C3                ret
+     00000F82  803E3E0103        cmp byte [0x13e],0x3
+     00000F87  75BF              jnz 0xf48
+     00000F89  8336300107        xor word [0x130],byte +0x7
+     00000F8E  8336320118        xor word [0x132],byte +0x18
+     00000F93  8336340104        xor word [0x134],byte +0x4
+     ;>>>> [R3] XORing the word at [0x136] with 0x06 — part of a sequence that toggles keyboard scan-code translation flags or setup-menu configuration bytes.
+     00000F98  8336360106        xor word [0x136],byte +0x6
+     ;>>>> [R1] This line XORs the word at [0x138] with 0x01, toggling a flag or counter used in a keyboard scancode translation or setup-menu navigation state machine.
+     00000F9D  8336380101        xor word [0x138],byte +0x1
+     00000FA2  81363A01CC00      xor word [0x13a],0xcc
+     ;>>>> [R1] This line ORs DX with itself, setting flags to test if DX is zero, as part of a return from a function that checks the terminal’s configuration byte at [0x13E] and conditionally toggles video attribute bits (e.g., XOR operations on [0x130]-[0x13A]) for setup-menu UI.
+
+=== SAMPLE 10/40  (address 0x000001F6) ===
+     000001E7  02D8              add bl,al
+     000001E9  8AC7              mov al,bh
+     ;>>>> [R4] This is part of a checksum or CRC accumulation loop over a serial port (likely the Z8530 SCC), repeatedly outputting a byte from BH and inputting a byte to add to BL, performing three OUTs then one IN per iteration.
+     000001EB  EE                out dx,al
+     000001EC  EE                out dx,al
+     000001ED  EE                out dx,al
+     000001EE  EC                in al,dx
+     000001EF  02D8              add bl,al
+     000001F1  8AC7              mov al,bh
+     000001F3  EE                out dx,al
+     000001F4  EE                out dx,al
+     000001F5  EE                out dx,al
+>>>> 000001F6  EC                in al,dx
+     ;>>>> [R4] This line adds BL to AL, continuing a loop that reads a byte from a Z8530 SCC register (DX=0x300-0x303) via `in al,dx` and accumulates the result in BX, used to verify SCC register readback during the self-test.
+     000001F7  02D8              add bl,al
+     000001F9  8AC7              mov al,bh
+     ;>>>> [R3] Writing the high byte of BX (BH) to the same I/O port (likely the Wyse gate array or SCC data register) three times, then reading back and accumulating into BL — part of a repeated I/O loop test.
+     000001FB  EE                out dx,al
+     000001FC  EE                out dx,al
+     000001FD  EE                out dx,al
+     000001FE  EC                in al,dx
+     000001FF  02D8              add bl,al
+     00000201  8AC7              mov al,bh
+     ;>>>> [R5] This line continues a checksum accumulation loop by outputting a byte from BH to the SCC port (DX), performing three dummy OUTs, then reading back and adding the result to BL, repeating the pattern to compute a hardware verification sum.
+     00000203  EE                out dx,al
+
+=== SAMPLE 11/40  (address 0x00000E62) ===
+     00000E4D  B90E00            mov cx,0xe
+     00000E50  AC                lodsb
+     00000E51  AA                stosb
+     00000E52  AA                stosb
+     00000E53  E2FB              loop 0xe50
+     00000E55  83C302            add bx,byte +0x2
+     00000E58  53                push bx
+     00000E59  B150              mov cl,0x50
+     00000E5B  268B07            mov ax,[es:bx]
+     00000E5E  86C4              xchg al,ah
+     00000E60  8BF8              mov di,ax
+     ;>>>> [R1] This line writes the character 0x50 (ASCII 'P') to the video attribute plane at the position pointed to by ES:DI, which is part of a routine that draws a setup menu box border or fills a screen region with a specific attribute byte.
+>>>> 00000E62  26880D            mov [es:di],cl
+     00000E65  83C701            add di,byte +0x1
+     00000E68  57                push di
+     00000E69  8D369501          lea si,[0x195]
+     00000E6D  B90D00            mov cx,0xd
+     00000E70  F3A4              rep movsb
+     00000E72  5F                pop di
+     ;>>>> [R5] The line pushes `di` to save the current video buffer offset before computing the destination for copying a 13-byte string (likely a menu label) from a table at `0x1a2`, using the width value at `0x13a` minus 13 to position it horizontally. This is part of a setup-menu UI routine that writes formatted text to the video attribute plane.
+     00000E73  57                push di
+     00000E74  8B163A01          mov dx,[0x13a]
+     00000E78  83EA0D            sub dx,byte +0xd
+     00000E7B  32F6              xor dh,dh
+     00000E7D  03FA              add di,dx
+
+=== SAMPLE 12/40  (address 0x00000F9D) ===
+     00000F7D  CD40              int 0x40
+     ;>>>> [R1] This line performs `or dx,dx` to test if DX is zero, then returns (ret), serving as a conditional exit point in a keyboard-scancode or setup-menu handler that checks a mode byte at 0x13e before toggling attribute or video parameters.
+     00000F7F  0BD2              or dx,dx
+     00000F81  C3                ret
+     00000F82  803E3E0103        cmp byte [0x13e],0x3
+     00000F87  75BF              jnz 0xf48
+     00000F89  8336300107        xor word [0x130],byte +0x7
+     00000F8E  8336320118        xor word [0x132],byte +0x18
+     00000F93  8336340104        xor word [0x134],byte +0x4
+     ;>>>> [R3] XORing the word at [0x136] with 0x06 — part of a sequence that toggles keyboard scan-code translation flags or setup-menu configuration bytes.
+     00000F98  8336360106        xor word [0x136],byte +0x6
+     ;>>>> [R1] This line XORs the word at [0x138] with 0x01, toggling a flag or counter used in a keyboard scancode translation or setup-menu navigation state machine.
+>>>> 00000F9D  8336380101        xor word [0x138],byte +0x1
+     00000FA2  81363A01CC00      xor word [0x13a],0xcc
+     ;>>>> [R1] This line ORs DX with itself, setting flags to test if DX is zero, as part of a return from a function that checks the terminal’s configuration byte at [0x13E] and conditionally toggles video attribute bits (e.g., XOR operations on [0x130]-[0x13A]) for setup-menu UI.
+     00000FA8  0BD2              or dx,dx
+     00000FAA  C3                ret
+     00000FAB  803E3E0101        cmp byte [0x13e],0x1
+     00000FB0  741A              jz 0xfcc
+     00000FB2  803E3E0102        cmp byte [0x13e],0x2
+     00000FB7  7417              jz 0xfd0
+     00000FB9  803E3E0103        cmp byte [0x13e],0x3
+     00000FBE  7414              jz 0xfd4
+     00000FC0  F7062A010100      test word [0x12a],0x1
+     00000FC6  7510              jnz 0xfd8
+
+=== SAMPLE 13/40  (address 0x0000125D) ===
+     ;>>>> [R3] Reading the 80C188EB timer 1 control register at I/O 0xFF1C to capture its current value, then writing 0x7 to it (likely to stop or reset the timer).
+     0000124E  ED                in ax,dx
+     0000124F  A38602            mov [0x286],ax
+     00001252  BA1CFF            mov dx,0xff1c
+     00001255  B80700            mov ax,0x7
+     00001258  EF                out dx,ax
+     00001259  C3                ret
+     ;>>>> [R4] This pushes segment registers and loads the interrupt vector table entry for interrupt 0x0E (hardware interrupt 14, likely the slave PIC or a timer) with the far pointer stored at [0x27a]-[0x27c], using ES=0.
+     0000125A  06                push es
+     0000125B  50                push ax
+     0000125C  53                push bx
+     ;>>>> [R1] This line zeros AX (xor ax,ax) to set up the segment register ES=0, preparing to write an interrupt vector (for INT 0x0E) into the real-mode IVT at address 0x0000:0038 (since BX=0x0E, shifted left twice gives offset 0x38).
+>>>> 0000125D  33C0              xor ax,ax
+     0000125F  8EC0              mov es,ax
+     00001261  BB0E00            mov bx,0xe
+     00001264  D1E3              shl bx,1
+     00001266  D1E3              shl bx,1
+     ;>>>> [R4] This line loads the word at 0x27A into AX, which is then stored into the interrupt vector table at segment 0, offset 0x38 (0xE * 4), setting up an interrupt handler (likely for INT 0Eh) as part of a kernel or system initialization routine.
+     00001268  A17A02            mov ax,[0x27a]
+     0000126B  268907            mov [es:bx],ax
+     0000126E  A17C02            mov ax,[0x27c]
+     00001271  26894702          mov [es:bx+0x2],ax
+     ;>>>> [R5] This line pops BX to restore the register after storing an interrupt vector (INT 0Eh) from a data table into the IVT at ES:BX, setting up a custom handler.
+     00001275  5B                pop bx
+     00001276  58                pop ax
+
+=== SAMPLE 14/40  (address 0x00000B50) ===
+     00000B31  83EF50            sub di,byte +0x50
+     00000B34  26C64513C1        mov byte [es:di+0x13],0xc1
+     00000B39  26C64516C1        mov byte [es:di+0x16],0xc1
+     00000B3E  26C6453BC1        mov byte [es:di+0x3b],0xc1
+     00000B43  26C6453EC1        mov byte [es:di+0x3e],0xc1
+     00000B48  C3                ret
+     00000B49  53                push bx
+     00000B4A  50                push ax
+     00000B4B  56                push si
+     00000B4C  03D8              add bx,ax
+     00000B4E  03D8              add bx,ax
+     ;>>>> [R1] This line loads AX from the video attribute table (ES:BX), then swaps bytes (xchg al,ah) to convert a little-endian stored offset into a big-endian screen address, used to compute the destination for clearing or filling a character cell on the attribute plane.
+>>>> 00000B50  268B07            mov ax,[es:bx]
+     00000B53  86C4              xchg al,ah
+     00000B55  8BF8              mov di,ax
+     00000B57  03FE              add di,si
+     ;>>>> [R3] This line loads AL with 0x20 (space character) to clear a row of the video attribute plane by writing DH (attribute byte) to [es:di-0x8000] and then storing spaces via STOSB in a loop, implementing a screen-row clear routine for the dual-plane VRAM.
+     00000B59  B020              mov al,0x20
+     ;>>>> [R4] This line loads `cx` from `[0x132]` (a counter or column width value) to control a `loop` that fills a row of the attribute plane with `dh` (color/attribute byte) and writes space characters (`0x20`) to the char plane, drawing a horizontal bar in the setup-menu UI.
+     00000B5B  8B0E3201          mov cx,[0x132]
+     00000B5F  2688B50080        mov [es:di-0x8000],dh
+     00000B64  AA                stosb
+     00000B65  E2F8              loop 0xb5f
+     00000B67  83C304            add bx,byte +0x4
+     00000B6A  268B07            mov ax,[es:bx]
+
+=== SAMPLE 15/40  (address 0x000001CD) ===
+     000001BF  32DB              xor bl,bl
+     000001C1  8AC7              mov al,bh
+     000001C3  EE                out dx,al
+     000001C4  EE                out dx,al
+     000001C5  EE                out dx,al
+     000001C6  EC                in al,dx
+     000001C7  02D8              add bl,al
+     000001C9  8AC7              mov al,bh
+     000001CB  EE                out dx,al
+     ;>>>> [R2] This is a repeated OUT to the same I/O port (DX), part of a sequence that writes a byte multiple times to a Wyse gate array register (probably for keyboard or video initialization).
+     000001CC  EE                out dx,al
+     ;>>>> [R1] This line outputs the value in AL (0x0C) to the I/O port in DX (likely a timer or chip-select register) for the third time in a sequence, part of a hardware read-back test that sums multiple reads to verify the port’s data bus integrity.
+>>>> 000001CD  EE                out dx,al
+     000001CE  EC                in al,dx
+     000001CF  02D8              add bl,al
+     000001D1  8AC7              mov al,bh
+     000001D3  EE                out dx,al
+     ;>>>> [R2] This line outputs AL to DX (OUT DX,AL) as part of a repeated pattern that writes a byte to a hardware port (likely the Z8530 SCC or timer) and then reads back a checksum byte, performing a hardware register verification test.
+     000001D4  EE                out dx,al
+     000001D5  EE                out dx,al
+     000001D6  EC                in al,dx
+     000001D7  02D8              add bl,al
+     000001D9  8AC7              mov al,bh
+     000001DB  EE                out dx,al
+     000001DC  EE                out dx,al
+
+=== SAMPLE 16/40  (address 0x00000C51) ===
+     00000C35  03363201          add si,[0x132]
+     00000C39  BA0808            mov dx,0x808
+     ;>>>> [R5] This line calls a subroutine at 0xb49 to output a character or string with DX=0x808, likely a video or serial output routine for displaying a test pattern or status indicator.
+     00000C3C  E80AFF            call 0xb49
+     00000C3F  03363201          add si,[0x132]
+     ;>>>> [R2] This line adds the word at `[0x134]` to `si`, likely indexing into a table of SCC register values or test parameters for the Z8530 initialization sequence.
+     00000C43  03363401          add si,[0x134]
+     ;>>>> [R1] This line sets DX=0x10, which is passed to subroutine 0xB49 to draw a horizontal line or box character at the current cursor position in the setup-menu UI, using the value as a line-drawing code (e.g., single horizontal line).
+     00000C47  BA1000            mov dx,0x10
+     00000C4A  E8FCFE            call 0xb49
+     00000C4D  03363201          add si,[0x132]
+     ;>>>> [R1] This line loads DX with 0x2030, which is likely a parameter for a subsequent call to 0xB49 (a hex-to-ASCII or display routine), used to format or output a test pattern or status value during the manufacturing self-test UI.
+>>>> 00000C51  BA3020            mov dx,0x2030
+     00000C54  E8F2FE            call 0xb49
+     00000C57  03363201          add si,[0x132]
+     00000C5B  BA1808            mov dx,0x818
+     00000C5E  E8E8FE            call 0xb49
+     00000C61  050300            add ax,0x3
+     00000C64  BE0100            mov si,0x1
+     00000C67  BA0101            mov dx,0x101
+     ;>>>> [R5] This line calls a subroutine at 0xb49 with DX=0x101, likely to write a specific configuration byte (0x01 for register 0x01) to the Z8530 SCC, part of a sequence programming the SCC’s WR registers for synchronous HDLC/SDLC operation.
+     00000C6A  E8DCFE            call 0xb49
+     00000C6D  03363201          add si,[0x132]
+     00000C71  BA2121            mov dx,0x2121
+     00000C74  E8D2FE            call 0xb49
+
+=== SAMPLE 17/40  (address 0x000008C2) ===
+     000008A8  268B1F            mov bx,[es:bx]
+     000008AB  86FB              xchg bh,bl
+     000008AD  26C60147          mov byte [es:bx+di],0x47
+     ;>>>> [R1] This line loads a word from a table at [si+0x10a] into CX, used to copy two bytes (CL and CH) into video attribute memory at ES:[BX+DI+1] and ES:[BX+DI+2] for setting character attributes in the attribute plane.
+     000008B1  8B8C0A01          mov cx,[si+0x10a]
+     000008B5  26884901          mov [es:bx+di+0x1],cl
+     ;>>>> [R4] This line stores the high byte of a character width/attribute value (from `ch`) into the attribute plane at offset `[es:bx+di+0x2]`, part of a loop that writes character cells (char + attribute) into the dual-plane VRAM (char plane at `[es:di]`, attribute plane at `[es:di+0x8000]`).
+     000008B9  26886902          mov [es:bx+di+0x2],ch
+     000008BD  050400            add ax,0x4
+     ;>>>> [R2] Jumps back to the top of a loop (address 0x896) that processes a table of keyboard scancode entries, writing a 0x47 byte and two bytes of data from [si+0x10a] into the video attribute plane at ES:bx+di.
+     000008C0  EBD4              jmp short 0x896
+     ;>>>> [R1] This line pops BX from the stack, restoring a pointer or return address, just before setting AX=0x24 and calling 0x107c (probably an INT 21h or INT 40h service to exit or signal completion of a keyboard scan-code table processing routine).
+>>>> 000008C2  5B                pop bx
+     000008C3  B82400            mov ax,0x24
+     000008C6  E8B307            call 0x107c
+     000008C9  C3                ret
+     000008CA  F7062C010100      test word [0x12c],0x1
+     000008D0  751B              jnz 0x8ed
+     000008D2  83062E0101        add word [0x12e],byte +0x1
+     ;>>>> [R5] This line compares a counter at [0x12E] to 6, controlling a blinking or animation effect by incrementing or decrementing the counter and toggling a flag at [0x12C] to change display state.
+     000008D7  833E2E0106        cmp word [0x12e],byte +0x6
+     000008DC  7522              jnz 0x900
+     000008DE  C7062C010100      mov word [0x12c],0x1
+     000008E4  C7062E010500      mov word [0x12e],0x5
+     000008EA  EB14              jmp short 0x900
+
+=== SAMPLE 18/40  (address 0x00000099) ===
+     00000081  7402              jz 0x85
+     00000083  03D1              add dx,cx
+     00000085  B90400            mov cx,0x4
+     00000088  B80F00            mov ax,0xf
+     0000008B  C1C204            rol dx,byte 0x4
+     0000008E  23C2              and ax,dx
+     ;>>>> [R1] This line moves SI to AX (the masked nibble from DX), using it as an index into a hex-digit lookup table at [SI+0x185], which is the core of a nibble-to-ASCII conversion algorithm for displaying register or memory values.
+     00000090  8BF0              mov si,ax
+     00000092  8A848501          mov al,[si+0x185]
+     00000096  AA                stosb
+     00000097  E2EF              loop 0x88
+     ;>>>> [R1] This line calls 0x10E0, which is one of several initialization or test routines invoked in sequence after converting a value to hex digits (the preceding loop at 0x88–0x97), likely part of the setup-menu UI or timer/port exercise initialization.
+>>>> 00000099  E84410            call 0x10e0
+     0000009C  E85110            call 0x10f0
+     0000009F  E85910            call 0x10fb
+     000000A2  E87F11            call 0x1224
+     000000A5  E8FA11            call 0x12a2
+     000000A8  E8BB10            call 0x1166
+     000000AB  E8450F            call 0xff3
+     000000AE  E83F10            call 0x10f0
+     000000B1  32DB              xor bl,bl
+     000000B3  881E5902          mov [0x259],bl
+     000000B7  BA08FF            mov dx,0xff08
+     000000BA  ED                in ax,dx
+     000000BB  25BFFF            and ax,0xffbf
+
+=== SAMPLE 19/40  (address 0x00000090) ===
+     00000077  8ED8              mov ds,ax
+     00000079  8EC0              mov es,ax
+     0000007B  8D3EAB01          lea di,[0x1ab]
+     ;>>>> [R1] This compares CX (a computed checksum or length) with DX (a running sum) to verify data integrity, then converts the resulting 16-bit value into four hex digits using a lookup table at [0x185] for display or diagnostic output.
+     0000007F  3BCA              cmp cx,dx
+     00000081  7402              jz 0x85
+     00000083  03D1              add dx,cx
+     00000085  B90400            mov cx,0x4
+     00000088  B80F00            mov ax,0xf
+     0000008B  C1C204            rol dx,byte 0x4
+     0000008E  23C2              and ax,dx
+     ;>>>> [R1] This line moves SI to AX (the masked nibble from DX), using it as an index into a hex-digit lookup table at [SI+0x185], which is the core of a nibble-to-ASCII conversion algorithm for displaying register or memory values.
+>>>> 00000090  8BF0              mov si,ax
+     00000092  8A848501          mov al,[si+0x185]
+     00000096  AA                stosb
+     00000097  E2EF              loop 0x88
+     ;>>>> [R1] This line calls 0x10E0, which is one of several initialization or test routines invoked in sequence after converting a value to hex digits (the preceding loop at 0x88–0x97), likely part of the setup-menu UI or timer/port exercise initialization.
+     00000099  E84410            call 0x10e0
+     0000009C  E85110            call 0x10f0
+     0000009F  E85910            call 0x10fb
+     000000A2  E87F11            call 0x1224
+     000000A5  E8FA11            call 0x12a2
+     000000A8  E8BB10            call 0x1166
+     000000AB  E8450F            call 0xff3
+     000000AE  E83F10            call 0x10f0
+
+=== SAMPLE 20/40  (address 0x000001DE) ===
+     000001D1  8AC7              mov al,bh
+     000001D3  EE                out dx,al
+     ;>>>> [R2] This line outputs AL to DX (OUT DX,AL) as part of a repeated pattern that writes a byte to a hardware port (likely the Z8530 SCC or timer) and then reads back a checksum byte, performing a hardware register verification test.
+     000001D4  EE                out dx,al
+     000001D5  EE                out dx,al
+     000001D6  EC                in al,dx
+     000001D7  02D8              add bl,al
+     000001D9  8AC7              mov al,bh
+     000001DB  EE                out dx,al
+     000001DC  EE                out dx,al
+     000001DD  EE                out dx,al
+     ;>>>> [R1] This line reads from the I/O port in DX (likely the Z8530 SCC data or status port at 0x300–0x303) and adds the byte to BL, part of a checksum or loopback test pattern for the serial host link initialization (SCC WR6/WR7 sync chars).
+>>>> 000001DE  EC                in al,dx
+     000001DF  02D8              add bl,al
+     000001E1  8AC7              mov al,bh
+     000001E3  EE                out dx,al
+     000001E4  EE                out dx,al
+     000001E5  EE                out dx,al
+     000001E6  EC                in al,dx
+     000001E7  02D8              add bl,al
+     000001E9  8AC7              mov al,bh
+     ;>>>> [R4] This is part of a checksum or CRC accumulation loop over a serial port (likely the Z8530 SCC), repeatedly outputting a byte from BH and inputting a byte to add to BL, performing three OUTs then one IN per iteration.
+     000001EB  EE                out dx,al
+     000001EC  EE                out dx,al
+     000001ED  EE                out dx,al
+
+=== SAMPLE 21/40  (address 0x00000450) ===
+     00000432  E8800A            call 0xeb5
+     00000435  B803C1            mov ax,0xc103
+     00000438  E87A0A            call 0xeb5
+     0000043B  B80568            mov ax,0x6805
+     0000043E  E8740A            call 0xeb5
+     00000441  B80F00            mov ax,0xf
+     ;>>>> [R2] This `call 0xeb5` writes the value `0x0F` (WR0 register select) to the SCC, part of a sequence programming the Z8530’s write registers (WR0–WR15) for synchronous HDLC/SDLC operation.
+     00000444  E86E0A            call 0xeb5
+     00000447  B80010            mov ax,0x1000
+     0000044A  E8680A            call 0xeb5
+     0000044D  B80010            mov ax,0x1000
+     ;>>>> [R1] This sequence writes a series of configuration values (0x30E, 0xC103, 0x6805, 0x0F, 0x1000, 0x1000, 0x3000, 0x1401) to the Z8530 SCC via calls to 0xeb5, which likely performs an OUT to the SCC control port at 0x300 to set WR registers for synchronous HDLC/SDLC mode.
+>>>> 00000450  E8620A            call 0xeb5
+     00000453  B80030            mov ax,0x3000
+     00000456  E85C0A            call 0xeb5
+     00000459  B80114            mov ax,0x1401
+     ;>>>> [R1] This line calls subroutine 0xEB5 with AX=0x1401, which is part of a sequence writing WR6/WR7 sync character registers on the Z8530 SCC at I/O 0x300-0x303 to configure synchronous HDLC framing for the host link.
+     0000045C  E8560A            call 0xeb5
+     0000045F  BA0EFF            mov dx,0xff0e
+     00000462  ED                in ax,dx
+     00000463  A91000            test ax,0x10
+     00000466  7410              jz 0x478
+     00000468  B80100            mov ax,0x1
+     ;>>>> [R1] This line stores a flag (AX=1) to memory at 0x12a, then shifts it left by 2 and ORs it into a bitmask at 0x4a, recording that a timer or power-management register (I/O 0xFF0E) bit 4 was set, indicating a specific hardware status.
+     0000046B  A32A01            mov [0x12a],ax
+
+=== SAMPLE 22/40  (address 0x00000498) ===
+     00000485  25EFFF            and ax,0xffef
+     00000488  EF                out dx,ax
+     ;>>>> [R3] This line accesses the 80C188EB timer 1 control register at I/O 0xFF56 to clear bit 6 (presumably disabling or resetting the timer), as part of a timer/port exercise in the manufacturing self-test.
+     00000489  BA56FF            mov dx,0xff56
+     0000048C  ED                in ax,dx
+     ;>>>> [R2] This line clears bit 6 of the timer 0 control register at I/O 0xFF56, likely disabling a timer output or mode bit during initialization.
+     0000048D  24BF              and al,0xbf
+     0000048F  EE                out dx,al
+     00000490  B80016            mov ax,0x1600
+     00000493  CD40              int 0x40
+     00000495  B80200            mov ax,0x2
+     ;>>>> [R1] This calls a subroutine at 0x102c that likely initializes or tests the Z8530 SCC channel B, followed by a loop that polls for a status condition (test ax,0x80) to verify the SCC’s sync character detection or receiver ready flag.
+>>>> 00000498  E8910B            call 0x102c
+     0000049B  E8550B            call 0xff3
+     0000049E  E8A70B            call 0x1048
+     000004A1  75F8              jnz 0x49b
+     000004A3  BA0103            mov dx,0x301
+     000004A6  B000              mov al,0x0
+     000004A8  E80F0A            call 0xeba
+     000004AB  A98000            test ax,0x80
+     000004AE  750D              jnz 0x4bd
+     000004B0  B80100            mov ax,0x1
+     000004B3  A32A01            mov [0x12a],ax
+     000004B6  C1E002            shl ax,byte 0x2
+     000004B9  0906AA00          or [0xaa],ax
+
+=== SAMPLE 23/40  (address 0x00000A69) ===
+     00000A51  268B4704          mov ax,[es:bx+0x4]
+     00000A55  86C4              xchg al,ah
+     00000A57  8BF8              mov di,ax
+     00000A59  83C702            add di,byte +0x2
+     ;>>>> [R4] This line zeros AX, preparing to load the byte at [0x13F] (a keyboard scancode or mode flag) into AL, then subtracts 0x3C to index into a lookup table at [0x140] for translating a scancode to a character or attribute value.
+     00000A5C  33C0              xor ax,ax
+     00000A5E  A03F01            mov al,[0x13f]
+     00000A61  2D3C00            sub ax,0x3c
+     ;>>>> [R5] The line compares `ax` (derived from a byte at `0x13f` minus 0x3c) against 0xc to validate an index into a 7-byte lookup table at `0x140`; if the index is ≤12, it copies a keyboard scancode translation entry. This is part of keyboard scancode table processing for the Wyse gate array.
+     00000A64  3D0C00            cmp ax,0xc
+     00000A67  770B              ja 0xa74
+     ;>>>> [R1] This loads the address of a keyboard scancode translation table at [0x140] into SI, then copies 7 bytes (rep movsb) to a destination derived from a row/column offset in the video attribute plane, mapping a key code to its display representation.
+>>>> 00000A69  8D364001          lea si,[0x140]
+     00000A6D  03F0              add si,ax
+     00000A6F  B90700            mov cx,0x7
+     00000A72  F3A4              rep movsb
+     00000A74  268B470E          mov ax,[es:bx+0xe]
+     00000A78  86C4              xchg al,ah
+     00000A7A  8BF8              mov di,ax
+     00000A7C  47                inc di
+     00000A7D  57                push di
+     00000A7E  83C70A            add di,byte +0xa
+     00000A81  B82000            mov ax,0x20
+     00000A84  2688A50080        mov [es:di-0x8000],ah
+     00000A89  AA                stosb
+
+=== SAMPLE 24/40  (address 0x00000C9D) ===
+     00000C81  03363201          add si,[0x132]
+     00000C85  03363401          add si,[0x134]
+     00000C89  BA1101            mov dx,0x111
+     ;>>>> [R2] This calls subroutine `0xb49` with `dx=0x111` after accumulating offsets from `[0x132]` and `[0x134]` into `si`. The sequence of calls with different `dx` values (0x101, 0x2121, 0x909, 0x111, etc.) is sending a series of sync character patterns to the Z8530 SCC serial controller via a write-register function, initializing the synchronous communication link.
+     00000C8C  E8BAFE            call 0xb49
+     00000C8F  03363201          add si,[0x132]
+     00000C93  BA3121            mov dx,0x2131
+     ;>>>> [R4] This line calls subroutine 0xB49 with DX=0x2131, which is part of a sequence writing SCC WR register pairs (e.g., WR2/WR3 or WR1/WR2) to initialize the Z8530 SCC for synchronous communication, using the value in SI as a base address or offset.
+     00000C96  E8B0FE            call 0xb49
+     ;>>>> [R3] This line adds the value at [0x132] (column width, either 80 or 132) to SI, advancing the screen offset between successive calls to the character-drawing subroutine at 0xb49, which writes a 2-byte character/attribute pair to the video buffer.
+     00000C99  03363201          add si,[0x132]
+     ;>>>> [R1] This loads DX with 0x0919 and calls 0xb49, which likely writes a pair of SCC WR6/WR7 sync characters (0x09 and 0x19) to the Z8530 to set the SDLC/HDLC frame synchronization pattern for the host link.
+>>>> 00000C9D  BA1909            mov dx,0x919
+     00000CA0  E8A6FE            call 0xb49
+     00000CA3  050300            add ax,0x3
+     00000CA6  BE0100            mov si,0x1
+     00000CA9  BA0303            mov dx,0x303
+     00000CAC  E89AFE            call 0xb49
+     00000CAF  03363201          add si,[0x132]
+     00000CB3  BA2323            mov dx,0x2323
+     00000CB6  E890FE            call 0xb49
+     00000CB9  03363201          add si,[0x132]
+     00000CBD  BA0B0B            mov dx,0xb0b
+     00000CC0  E886FE            call 0xb49
+     00000CC3  03363201          add si,[0x132]
+
+=== SAMPLE 25/40  (address 0x0000007F) ===
+     00000066  75F9              jnz 0x61
+     00000068  81FB00E0          cmp bx,0xe000
+     0000006C  7508              jnz 0x76
+     0000006E  8BCA              mov cx,dx
+     00000070  81C30010          add bx,0x1000
+     00000074  EBE5              jmp short 0x5b
+     00000076  58                pop ax
+     ;>>>> [R1] This line sets DS to AX, establishing a segment base for a checksum verification routine that computes a 16-bit sum over a memory region (0xE000-0xEFFF) and converts nibbles to hex ASCII characters for display.
+     00000077  8ED8              mov ds,ax
+     00000079  8EC0              mov es,ax
+     0000007B  8D3EAB01          lea di,[0x1ab]
+     ;>>>> [R1] This compares CX (a computed checksum or length) with DX (a running sum) to verify data integrity, then converts the resulting 16-bit value into four hex digits using a lookup table at [0x185] for display or diagnostic output.
+>>>> 0000007F  3BCA              cmp cx,dx
+     00000081  7402              jz 0x85
+     00000083  03D1              add dx,cx
+     00000085  B90400            mov cx,0x4
+     00000088  B80F00            mov ax,0xf
+     0000008B  C1C204            rol dx,byte 0x4
+     0000008E  23C2              and ax,dx
+     ;>>>> [R1] This line moves SI to AX (the masked nibble from DX), using it as an index into a hex-digit lookup table at [SI+0x185], which is the core of a nibble-to-ASCII conversion algorithm for displaying register or memory values.
+     00000090  8BF0              mov si,ax
+     00000092  8A848501          mov al,[si+0x185]
+     00000096  AA                stosb
+     00000097  E2EF              loop 0x88
+     ;>>>> [R1] This line calls 0x10E0, which is one of several initialization or test routines invoked in sequence after converting a value to hex digits (the preceding loop at 0x88–0x97), likely part of the setup-menu UI or timer/port exercise initialization.
+
+=== SAMPLE 26/40  (address 0x00000BA9) ===
+     ;>>>> [R4] This line adds SI to DI, where DI holds a video buffer offset derived from a character/attribute pair, to compute the destination address for clearing or filling a row of the attribute plane (at ES:DI-0x8000) with a space character (0x20) and attribute byte (DH), as part of a screen-clearing routine.
+     00000B8B  03FE              add di,si
+     00000B8D  B020              mov al,0x20
+     00000B8F  8B0E3801          mov cx,[0x138]
+     00000B93  2688B50080        mov [es:di-0x8000],dh
+     00000B98  AA                stosb
+     00000B99  E2F8              loop 0xb93
+     00000B9B  8D365D01          lea si,[0x15d]
+     00000B9F  8B0E3601          mov cx,[0x136]
+     00000BA3  2688950080        mov [es:di-0x8000],dl
+     00000BA8  A4                movsb
+     ;>>>> [R1] This loop writes a row of spaces (0x20) to the video attribute plane (ES:DI-0x8000) using DH as the attribute byte, then copies a string from DS:SI to the character plane (ES:DI) via `movsb`, repeated by CX from [0x138] and [0x136] — it is drawing a text line with attributes for the setup menu UI.
+>>>> 00000BA9  E2F8              loop 0xba3
+     ;>>>> [R5] This is a loop that fills video memory with space characters (0x20) and attribute bytes (DH) for a row of text, using `stosb` and `loop` to write 0x50 (80) characters per row, part of a screen-clearing or box-drawing routine.
+     00000BAB  B020              mov al,0x20
+     00000BAD  8B0E3801          mov cx,[0x138]
+     00000BB1  2688B50080        mov [es:di-0x8000],dh
+     00000BB6  AA                stosb
+     00000BB7  E2F8              loop 0xbb1
+     00000BB9  5E                pop si
+     00000BBA  58                pop ax
+     00000BBB  5B                pop bx
+     00000BBC  C3                ret
+     00000BBD  06                push es
+     00000BBE  53                push bx
+
+=== SAMPLE 27/40  (address 0x000003D8) ===
+     000003BC  C1E002            shl ax,byte 0x2
+     000003BF  09062A00          or [0x2a],ax
+     000003C3  BA5EFF            mov dx,0xff5e
+     000003C6  8BC3              mov ax,bx
+     000003C8  0C40              or al,0x40
+     000003CA  EE                out dx,al
+     000003CB  E8CB0A            call 0xe99
+     000003CE  BA5AFF            mov dx,0xff5a
+     000003D1  ED                in ax,dx
+     000003D2  25F000            and ax,0xf0
+     000003D5  3D6000            cmp ax,0x60
+     ;>>>> [R1] This checks if timer 1 (I/O 0xFF5A) has reached a specific count (0x60 after masking), and if so jumps to 0x3E7 to skip setting an error flag — it is verifying timer 1’s output frequency during the manufacturing self-test.
+>>>> 000003D8  740D              jz 0x3e7
+     ;>>>> [R2] Sets a flag at [0x12a] to 1 and ORs a shifted value into [0x2a] after checking timer status at I/O port 0xff5a, indicating a timer/counter configuration or error-detection step in the manufacturing test.
+     000003DA  B80100            mov ax,0x1
+     ;>>>> [R2] This stores the value 1 into `[0x12a]` after detecting that a timer/counter register at port `0xff5a` has a value of `0x60` in the upper nibble, indicating a specific timer state. It then shifts this value left by 3 and ORs it into `[0x2a]` to set a flag for a timer test result.
+     000003DD  A32A01            mov [0x12a],ax
+     000003E0  C1E003            shl ax,byte 0x3
+     000003E3  09062A00          or [0x2a],ax
+     000003E7  E8090C            call 0xff3
+     000003EA  BA0103            mov dx,0x301
+     000003ED  B809C0            mov ax,0xc009
+     000003F0  E8C20A            call 0xeb5
+     ;>>>> [R5] This line loads AX=0x504 and calls 0xeb5, which is a helper that writes a byte to the Z8530 SCC’s data port (0x301) after selecting a register via the control port (0x300), here writing WR5=0x04 (likely setting DTR, RTS, or CRC enable).
+     000003F3  B80405            mov ax,0x504
+
+=== SAMPLE 28/40  (address 0x00000F15) ===
+     00000EF8  0BD2              or dx,dx
+     00000EFA  C3                ret
+     00000EFB  33C0              xor ax,ax
+     00000EFD  A32A01            mov [0x12a],ax
+     00000F00  A30A00            mov [0xa],ax
+     00000F03  A32A00            mov [0x2a],ax
+     00000F06  A34A00            mov [0x4a],ax
+     00000F09  A36A00            mov [0x6a],ax
+     00000F0C  A38A00            mov [0x8a],ax
+     00000F0F  A3AA00            mov [0xaa],ax
+     00000F12  A3CA00            mov [0xca],ax
+     ;>>>> [R1] This zeros a series of word variables in the data segment (0x0A, 0x2A, 0x4A, … 0xEA) — it is clearing a table of 16-bit counters or flags (likely keyboard scancode or timer state variables) as part of initialization.
+>>>> 00000F15  A3EA00            mov [0xea],ax
+     00000F18  A30A01            mov [0x10a],ax
+     00000F1B  B80600            mov ax,0x6
+     00000F1E  E85B01            call 0x107c
+     00000F21  0BD2              or dx,dx
+     00000F23  C3                ret
+     00000F24  80363C0101        xor byte [0x13c],0x1
+     00000F29  7408              jz 0xf33
+     00000F2B  33C0              xor ax,ax
+     00000F2D  E84C01            call 0x107c
+     00000F30  33D2              xor dx,dx
+     00000F32  C3                ret
+     00000F33  B82400            mov ax,0x24
+
+=== SAMPLE 29/40  (address 0x00000DE0) ===
+     00000DBE  E888FD            call 0xb49
+     00000DC1  03363201          add si,[0x132]
+     00000DC5  BA0F0B            mov dx,0xb0f
+     00000DC8  E87EFD            call 0xb49
+     00000DCB  03363201          add si,[0x132]
+     ;>>>> [R4] This line adds the word at `[0x134]` to SI, continuing a sequence that accumulates offsets from a table (likely a keyboard scan-code or character-generation offset table) used to index into a data structure for the setup-menu UI.
+     00000DCF  03363401          add si,[0x134]
+     00000DD3  BA1703            mov dx,0x317
+     00000DD6  E870FD            call 0xb49
+     00000DD9  03363201          add si,[0x132]
+     00000DDD  BA3723            mov dx,0x2337
+     ;>>>> [R1] This calls subroutine 0xB49 with DX=0x2337 after adding offsets from [0x132] to SI — it is writing a specific SCC WR pair (WR2=0x23, WR3=0x37) to initialize the Z8530’s sync character registers for the UT200 synchronous protocol.
+>>>> 00000DE0  E866FD            call 0xb49
+     00000DE3  03363201          add si,[0x132]
+     00000DE7  BA1F0B            mov dx,0xb1f
+     00000DEA  E85CFD            call 0xb49
+     00000DED  53                push bx
+     00000DEE  8B163A01          mov dx,[0x13a]
+     00000DF2  83C203            add dx,byte +0x3
+     00000DF5  83EA14            sub dx,byte +0x14
+     00000DF8  32F6              xor dh,dh
+     00000DFA  D1EA              shr dx,1
+     00000DFC  83CA01            or dx,byte +0x1
+     00000DFF  B1D0              mov cl,0xd0
+     00000E01  268B07            mov ax,[es:bx]
+
+=== SAMPLE 30/40  (address 0x00000EC8) ===
+     00000EB8  EE                out dx,al
+     00000EB9  C3                ret
+     00000EBA  B000              mov al,0x0
+     00000EBC  EE                out dx,al
+     00000EBD  EC                in al,dx
+     00000EBE  C3                ret
+     00000EBF  BA0100            mov dx,0x1
+     00000EC2  B400              mov ah,0x0
+     ;>>>> [R2] This line calls INT 16h (keyboard BIOS interrupt) with AH=0 to read a key from the keyboard buffer, checking if the key is Escape (0x1b) to exit the test loop.
+     00000EC4  CD16              int 0x16
+     00000EC6  3C1B              cmp al,0x1b
+     ;>>>> [R1] This checks if the keyboard input (from INT 16h, AH=0) is the Escape key (0x1B), and if so jumps to 0xED4 to exit the current test loop — it is handling the Escape key to abort the manufacturing self-test menu.
+>>>> 00000EC8  740A              jz 0xed4
+     00000ECA  F6063E010F        test byte [0x13e],0xf
+     00000ECF  7406              jz 0xed7
+     00000ED1  EB69              jmp short 0xf3c
+     00000ED3  90                nop
+     00000ED4  E950F7            jmp 0x627
+     00000ED7  3C20              cmp al,0x20
+     00000ED9  7413              jz 0xeee
+     00000EDB  F7062A010100      test word [0x12a],0x1
+     00000EE1  7408              jz 0xeeb
+     00000EE3  3C12              cmp al,0x12
+     00000EE5  7414              jz 0xefb
+     00000EE7  3C13              cmp al,0x13
+
+=== SAMPLE 31/40  (address 0x000008B1) ===
+     00000894  33F6              xor si,si
+     00000896  83C602            add si,byte +0x2
+     00000899  83FE20            cmp si,byte +0x20
+     0000089C  7424              jz 0x8c2
+     0000089E  D1EA              shr dx,1
+     000008A0  F7C20100          test dx,0x1
+     000008A4  74F0              jz 0x896
+     000008A6  8BD8              mov bx,ax
+     000008A8  268B1F            mov bx,[es:bx]
+     000008AB  86FB              xchg bh,bl
+     000008AD  26C60147          mov byte [es:bx+di],0x47
+     ;>>>> [R1] This line loads a word from a table at [si+0x10a] into CX, used to copy two bytes (CL and CH) into video attribute memory at ES:[BX+DI+1] and ES:[BX+DI+2] for setting character attributes in the attribute plane.
+>>>> 000008B1  8B8C0A01          mov cx,[si+0x10a]
+     000008B5  26884901          mov [es:bx+di+0x1],cl
+     ;>>>> [R4] This line stores the high byte of a character width/attribute value (from `ch`) into the attribute plane at offset `[es:bx+di+0x2]`, part of a loop that writes character cells (char + attribute) into the dual-plane VRAM (char plane at `[es:di]`, attribute plane at `[es:di+0x8000]`).
+     000008B9  26886902          mov [es:bx+di+0x2],ch
+     000008BD  050400            add ax,0x4
+     ;>>>> [R2] Jumps back to the top of a loop (address 0x896) that processes a table of keyboard scancode entries, writing a 0x47 byte and two bytes of data from [si+0x10a] into the video attribute plane at ES:bx+di.
+     000008C0  EBD4              jmp short 0x896
+     ;>>>> [R1] This line pops BX from the stack, restoring a pointer or return address, just before setting AX=0x24 and calling 0x107c (probably an INT 21h or INT 40h service to exit or signal completion of a keyboard scan-code table processing routine).
+     000008C2  5B                pop bx
+     000008C3  B82400            mov ax,0x24
+     000008C6  E8B307            call 0x107c
+     000008C9  C3                ret
+     000008CA  F7062C010100      test word [0x12c],0x1
+
+=== SAMPLE 32/40  (address 0x0000045C) ===
+     00000441  B80F00            mov ax,0xf
+     ;>>>> [R2] This `call 0xeb5` writes the value `0x0F` (WR0 register select) to the SCC, part of a sequence programming the Z8530’s write registers (WR0–WR15) for synchronous HDLC/SDLC operation.
+     00000444  E86E0A            call 0xeb5
+     00000447  B80010            mov ax,0x1000
+     0000044A  E8680A            call 0xeb5
+     0000044D  B80010            mov ax,0x1000
+     ;>>>> [R1] This sequence writes a series of configuration values (0x30E, 0xC103, 0x6805, 0x0F, 0x1000, 0x1000, 0x3000, 0x1401) to the Z8530 SCC via calls to 0xeb5, which likely performs an OUT to the SCC control port at 0x300 to set WR registers for synchronous HDLC/SDLC mode.
+     00000450  E8620A            call 0xeb5
+     00000453  B80030            mov ax,0x3000
+     00000456  E85C0A            call 0xeb5
+     00000459  B80114            mov ax,0x1401
+     ;>>>> [R1] This line calls subroutine 0xEB5 with AX=0x1401, which is part of a sequence writing WR6/WR7 sync character registers on the Z8530 SCC at I/O 0x300-0x303 to configure synchronous HDLC framing for the host link.
+>>>> 0000045C  E8560A            call 0xeb5
+     0000045F  BA0EFF            mov dx,0xff0e
+     00000462  ED                in ax,dx
+     00000463  A91000            test ax,0x10
+     00000466  7410              jz 0x478
+     00000468  B80100            mov ax,0x1
+     ;>>>> [R1] This line stores a flag (AX=1) to memory at 0x12a, then shifts it left by 2 and ORs it into a bitmask at 0x4a, recording that a timer or power-management register (I/O 0xFF0E) bit 4 was set, indicating a specific hardware status.
+     0000046B  A32A01            mov [0x12a],ax
+     0000046E  C1E002            shl ax,byte 0x2
+     00000471  09064A00          or [0x4a],ax
+     00000475  EB12              jmp short 0x489
+     00000477  90                nop
+     00000478  BA0103            mov dx,0x301
+
+=== SAMPLE 33/40  (address 0x00000950) ===
+     0000093C  B80600            mov ax,0x6
+     0000093F  E83A07            call 0x107c
+     ;>>>> [R3] This is a return instruction (`ret`) ending a subroutine that draws a row of characters to the attribute plane (ES:DI-0x8000) for the video test display.
+     00000942  C3                ret
+     ;>>>> [R3] This line sets up and calls INT 10h with AX=0x0601 to scroll the active video page up (clear screen) in a 80x25 window (CX=0x0000, DX=0x1D4F), using attribute 0x02 (green on black), as part of the setup-menu UI.
+     00000943  06                push es
+     00000944  53                push bx
+     00000945  B80106            mov ax,0x601
+     00000948  B90000            mov cx,0x0
+     0000094B  BA4F1D            mov dx,0x1d4f
+     0000094E  B702              mov bh,0x2
+     ;>>>> [R1] This line executes INT 0x10 with AX=0x0601, CX=0x0000, DX=0x1D4F, BH=0x02 to scroll the entire 80x25 text screen up by one line (video BIOS scroll function), clearing the bottom line with attribute 0x02 (green on black).
+>>>> 00000950  CD10              int 0x10
+     ;>>>> [R4] This sets the cursor position (INT 10h, AH=02h) to row 0x20 (32) and column 0x00, using BH=0x02 (page 2), after previously scrolling a window (INT 10h AH=06h).
+     00000952  B80002            mov ax,0x200
+     00000955  8AF8              mov bh,al
+     00000957  BA0020            mov dx,0x2000
+     0000095A  CD10              int 0x10
+     0000095C  5B                pop bx
+     0000095D  07                pop es
+     0000095E  268B473A          mov ax,[es:bx+0x3a]
+     00000962  86C4              xchg al,ah
+     00000964  8BF8              mov di,ax
+     00000966  33C0              xor ax,ax
+     00000968  AA                stosb
+
+=== SAMPLE 34/40  (address 0x00000C47) ===
+     00000C2B  03363201          add si,[0x132]
+     00000C2F  BA2020            mov dx,0x2020
+     00000C32  E814FF            call 0xb49
+     ;>>>> [R4] This is a screen display routine that writes character/attribute pairs to video memory, using `add si,[0x132]` to advance through a table of display parameters (likely column/row positions and character data).
+     00000C35  03363201          add si,[0x132]
+     00000C39  BA0808            mov dx,0x808
+     ;>>>> [R5] This line calls a subroutine at 0xb49 to output a character or string with DX=0x808, likely a video or serial output routine for displaying a test pattern or status indicator.
+     00000C3C  E80AFF            call 0xb49
+     00000C3F  03363201          add si,[0x132]
+     ;>>>> [R2] This line adds the word at `[0x134]` to `si`, likely indexing into a table of SCC register values or test parameters for the Z8530 initialization sequence.
+     00000C43  03363401          add si,[0x134]
+     ;>>>> [R1] This line sets DX=0x10, which is passed to subroutine 0xB49 to draw a horizontal line or box character at the current cursor position in the setup-menu UI, using the value as a line-drawing code (e.g., single horizontal line).
+>>>> 00000C47  BA1000            mov dx,0x10
+     00000C4A  E8FCFE            call 0xb49
+     00000C4D  03363201          add si,[0x132]
+     ;>>>> [R1] This line loads DX with 0x2030, which is likely a parameter for a subsequent call to 0xB49 (a hex-to-ASCII or display routine), used to format or output a test pattern or status value during the manufacturing self-test UI.
+     00000C51  BA3020            mov dx,0x2030
+     00000C54  E8F2FE            call 0xb49
+     00000C57  03363201          add si,[0x132]
+     00000C5B  BA1808            mov dx,0x818
+     00000C5E  E8E8FE            call 0xb49
+     00000C61  050300            add ax,0x3
+     00000C64  BE0100            mov si,0x1
+     00000C67  BA0101            mov dx,0x101
+     ;>>>> [R5] This line calls a subroutine at 0xb49 with DX=0x101, likely to write a specific configuration byte (0x01 for register 0x01) to the Z8530 SCC, part of a sequence programming the SCC’s WR registers for synchronous HDLC/SDLC operation.
+
+=== SAMPLE 35/40  (address 0x00000592) ===
+     00000581  ED                in ax,dx
+     00000582  BA68FF            mov dx,0xff68
+     00000585  ED                in ax,dx
+     ;>>>> [R1] This line loads DX with 0xFF66 to read the 80C188EB timer 2 count register, part of a timer initialization sequence that configures timer 1 (0xFF60) and timer 2 (0xFF64) for manufacturing test timing exercises.
+     00000586  BA66FF            mov dx,0xff66
+     00000589  ED                in ax,dx
+     ;>>>> [R5] This line sets `dx` to `0xff68` (the 80C188EB timer 2 count register) and reads its value into `ax`, as part of a timer/port exercise that reads multiple timer/counter registers (at `0xff60`–`0xff6a`) to verify the hardware timer and chip-select functionality during manufacturing self-test.
+     0000058A  BA68FF            mov dx,0xff68
+     0000058D  ED                in ax,dx
+     0000058E  BA08FF            mov dx,0xff08
+     00000591  ED                in ax,dx
+     ;>>>> [R1] This line masks bit 2 (0xFFFB) of the value read from I/O port 0xFF08 (80C188EB chip-select control register), clearing the chip-select enable for a specific memory region, likely to disable flash or RAM during a timer/port exercise.
+>>>> 00000592  25FBFF            and ax,0xfffb
+     00000595  EF                out dx,ax
+     00000596  E85A0A            call 0xff3
+     00000599  C606580200        mov byte [0x258],0x0
+     0000059E  C7061D020000      mov word [0x21d],0x0
+     000005A4  B83600            mov ax,0x36
+     000005A7  E8820A            call 0x102c
+     000005AA  C706E5010100      mov word [0x1e5],0x1
+     000005B0  BA6AFF            mov dx,0xff6a
+     000005B3  A0AF01            mov al,[0x1af]
+     000005B6  EE                out dx,al
+     000005B7  A11D02            mov ax,[0x21d]
+     000005BA  3D3600            cmp ax,0x36
+
+=== SAMPLE 36/40  (address 0x000010EE) ===
+     000010D8  2BC2              sub ax,dx
+     000010DA  76EE              jna 0x10ca
+     000010DC  33F6              xor si,si
+     000010DE  61                popa
+     000010DF  C3                ret
+     000010E0  BA08FF            mov dx,0xff08
+     000010E3  ED                in ax,dx
+     000010E4  A38202            mov [0x282],ax
+     000010E7  C3                ret
+     000010E8  BA08FF            mov dx,0xff08
+     000010EB  A18202            mov ax,[0x282]
+     ;>>>> [R1] This is a write-to-port function that outputs the value stored at `[0x282]` to I/O port `0xFF08` (the 80C188EB chip-select or system control register).
+>>>> 000010EE  EF                out dx,ax
+     000010EF  C3                ret
+     000010F0  BA08FF            mov dx,0xff08
+     000010F3  A18202            mov ax,[0x282]
+     000010F6  0DD400            or ax,0xd4
+     000010F9  EF                out dx,ax
+     000010FA  C3                ret
+     000010FB  BA1EFF            mov dx,0xff1e
+     000010FE  ED                in ax,dx
+     000010FF  A38802            mov [0x288],ax
+     00001102  BA1EFF            mov dx,0xff1e
+     ;>>>> [R4] This writes the value 0x18 to the 80C188EB timer/counter register at I/O port 0xFF1E, likely to set or reset a timer count or control register.
+     00001105  B81800            mov ax,0x18
+
+=== SAMPLE 37/40  (address 0x000011FD) ===
+     000011E3  53                push bx
+     000011E4  33C0              xor ax,ax
+     000011E6  8EC0              mov es,ax
+     000011E8  BB1500            mov bx,0x15
+     000011EB  D1E3              shl bx,1
+     000011ED  D1E3              shl bx,1
+     000011EF  A17602            mov ax,[0x276]
+     000011F2  268907            mov [es:bx],ax
+     000011F5  A17802            mov ax,[0x278]
+     000011F8  26894702          mov [es:bx+0x2],ax
+     000011FC  5B                pop bx
+     ;>>>> [R1] This code restores registers and then writes timer configuration values from `[0x27E]` and `[0x280]` to the 80C188EB timer registers at ports `0xFF60` and `0xFF64`.
+>>>> 000011FD  58                pop ax
+     000011FE  07                pop es
+     000011FF  BA60FF            mov dx,0xff60
+     00001202  A17E02            mov ax,[0x27e]
+     00001205  EF                out dx,ax
+     00001206  BA64FF            mov dx,0xff64
+     00001209  A18002            mov ax,[0x280]
+     0000120C  EF                out dx,ax
+     0000120D  C3                ret
+     0000120E  60                pusha
+     0000120F  1E                push ds
+     00001210  B83401            mov ax,0x134
+     00001213  8ED8              mov ds,ax
+
+=== SAMPLE 38/40  (address 0x0000001B) ===
+     00000006  07                pop es
+     00000007  8BDC              mov bx,sp
+     ;>>>> [R4] This is a DOS memory resize operation that calculates the program's memory size by adjusting the stack pointer (`add bx,byte +0xf`), converting paragraphs, and calling `INT 21h` with `AH=0x4A` (resize memory block).
+     00000009  83C30F            add bx,byte +0xf
+     0000000C  C1EB04            shr bx,byte 0x4
+     0000000F  8CD0              mov ax,ss
+     00000011  03D8              add bx,ax
+     00000013  8CC0              mov ax,es
+     00000015  2BD8              sub bx,ax
+     00000017  B44A              mov ah,0x4a
+     00000019  CD21              int 0x21
+     ;>>>> [R1] After a DOS `INT 21h` resize memory block call (AH=4Ah), this reads a byte from `[0x13F]` and calls `INT 40h` with AH=0x1E and AH=0x26 — likely a custom kernel function to get/set system parameters, then formats a hex digit into an ASCII character.
+>>>> 0000001B  A03F01            mov al,[0x13f]
+     0000001E  B41E              mov ah,0x1e
+     00000020  CD40              int 0x40
+     00000022  B426              mov ah,0x26
+     00000024  CD40              int 0x40
+     00000026  80E20F            and dl,0xf
+     00000029  80CA30            or dl,0x30
+     0000002C  88169D01          mov [0x19d],dl
+     00000030  8AC6              mov al,dh
+     00000032  B60A              mov dh,0xa
+     ;>>>> [R4] This converts a binary value in AL (from a prior INT 40h call) into two decimal ASCII digits by dividing by 10 twice, storing the tens and units digits into memory locations 0x19f-0x1a1.
+     00000034  32E4              xor ah,ah
+     00000036  F6FE              idiv dh
+
+=== SAMPLE 39/40  (address 0x00001003) ===
+     ;>>>> [R5] This line calls a subroutine at 0x8CA, which likely performs a specific hardware test or initialization step, such as checking the SCC status or timer registers, based on the preceding conditional checks on memory variables at [0x13E] and [0x12A].
+     00000FEF  E8D8F8            call 0x8ca
+     00000FF2  C3                ret
+     00000FF3  B400              mov ah,0x0
+     00000FF5  CD40              int 0x40
+     00000FF7  9C                pushf
+     00000FF8  B401              mov ah,0x1
+     00000FFA  CD16              int 0x16
+     00000FFC  7409              jz 0x1007
+     00000FFE  E8BEFE            call 0xebf
+     00001001  7404              jz 0x1007
+     ;>>>> [R1] This is a polling loop that checks for a keypress via `INT 16h` AH=1, and if no key is ready, it pops the flags and jumps; otherwise it calls a subroutine and then uses `INT 40h` AH=4 to perform a system operation based on carry flag state.
+>>>> 00001003  9D                popf
+     00001004  EB04              jmp short 0x100a
+     00001006  90                nop
+     00001007  9D                popf
+     00001008  730E              jnc 0x1018
+     0000100A  B404              mov ah,0x4
+     0000100C  CD40              int 0x40
+     0000100E  8CC0              mov ax,es
+     00001010  0BC3              or ax,bx
+     00001012  74DF              jz 0xff3
+     00001014  E894FF            call 0xfab
+     00001017  C3                ret
+     00001018  E88900            call 0x10a4
+
+=== SAMPLE 40/40  (address 0x000010DF) ===
+     000010C8  7712              ja 0x10dc
+     000010CA  0BF6              or si,si
+     000010CC  61                popa
+     000010CD  C3                ret
+     000010CE  A16802            mov ax,[0x268]
+     000010D1  2BC2              sub ax,dx
+     000010D3  77F5              ja 0x10ca
+     000010D5  A16402            mov ax,[0x264]
+     000010D8  2BC2              sub ax,dx
+     000010DA  76EE              jna 0x10ca
+     000010DC  33F6              xor si,si
+     000010DE  61                popa
+>>>> 000010DF  C3                ret
+     000010E0  BA08FF            mov dx,0xff08
+     000010E3  ED                in ax,dx
+     000010E4  A38202            mov [0x282],ax
+     000010E7  C3                ret
+     000010E8  BA08FF            mov dx,0xff08
+     000010EB  A18202            mov ax,[0x282]
+     ;>>>> [R1] This is a write-to-port function that outputs the value stored at `[0x282]` to I/O port `0xFF08` (the 80C188EB chip-select or system control register).
+     000010EE  EF                out dx,ax
+     000010EF  C3                ret
+     000010F0  BA08FF            mov dx,0xff08
+     000010F3  A18202            mov ax,[0x282]
+     000010F6  0DD400            or ax,0xd4

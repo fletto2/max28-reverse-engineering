@@ -1,0 +1,155 @@
+0x0000003D [R1] The line `jmp short 0x2c` at 0x3D loops back to `mov ah,0x0; int 0x40` to repeatedly call the kernel’s serial get-character service (INT 40h, AH=0) until a key is received.
+0x0000000D [R1] The line `pop es` at 0x0D loads the program’s original ES segment (saved by `push ds`), used to compute the memory block size for the INT 21h AH=4Ah (resize memory block) call that follows.
+0x000000A4 [R1] The line `cmp al,0x39` at 0xA4 checks if the current ASCII digit character (starting from '1') has exceeded '9', wrapping back to '0' to fill a row of digit characters in VRAM for a screen test pattern.
+0x00000091 [R1] The line `inc di` at 0x91 advances the VRAM destination pointer by one byte, preparing to write the first digit character ('1') into the attribute plane offset (ES:DI) for a row of repeating digits.
+0x00000053 [R1] This line loads DX with 0x1E, which is the offset of a data structure used in the video attribute/character painting loop that follows, where BP is set to 0x40 (starting attribute value) and the code writes characters and attributes to the dual-plane VRAM.
+0x00000038 [R1] This is a conditional jump (jnz 0x3f) that checks if the ES:BX pointer returned by INT 40h AH=4 (memory allocation) is non-null; if so, it stores the segment and offset into variables at [0x10] and [0x12] for later use.
+0x0000018C [R1] This is an unconditional jump (jmp 0x2c) that returns control to the main loop after calling INT 40h AH=0x34 with AL=0/1/2 to set the terminal emulation mode based on a comparison with 0x64.
+0x00000030 [R1] This line sets AH=4 and calls INT 40h, which is the kernel’s memory allocation service that returns a segment:offset in ES:BX for the terminal’s display buffer.
+0x00000146 [R1] This loads AL from memory location [0x6F] (a counter variable), then calls INT 40h with AH=0x20 to send a character to the host via the Z8530 SCC serial link.
+0x00000010 [R1] The line `add bx,byte +0xf` rounds the stack pointer up to the next paragraph boundary, preparing to compute the program’s memory size for an INT 21h AH=4Ah (resize memory block) call.
+0x0000000E [R1] The line `mov bx,sp` captures the current stack pointer, which is the first step in calculating the program’s memory footprint for the subsequent INT 21h AH=4Ah resize operation.
+0x00000084 [R1] The line `loop 0x7e` decrements CX and jumps back to fill a row of attribute bytes in VRAM (at ES:DI-0x8000) with the value in AH, implementing a character-row clear loop for the terminal display.
+0x0000008A [R1] The line `mov ax,[es:bx]` loads a word from the ES segment (likely a pointer or character data from a buffer), which is then byte-swapped with `xchg al,ah` to convert from little-endian to big-endian for the UT200 host protocol.
+0x00000177 [R1] This line is a conditional jump that loops back to retry printer output if the printer status indicates the port is still busy (INT 17h AH=2 returns status in AH, and the code tests for bit 7 indicating busy).
+0x000001FC [R1] This line is data misdecoded as code; the bytes 0D 0A 24 are actually a CR/LF/“$” string terminator following the preceding “Running.” message.
+0x00000074 [R1] This line checks a configuration byte at [0x14] to determine whether the terminal is in 80-column mode (value ≤ 0x30) or 132-column mode, setting CX to 0x4F (79) or 0x83 (131) for the column count in a VRAM fill loop.
+0x00000142 [R1] This line decrements a counter at [0x6F] that tracks the number of pending printer output bytes, used in a printer-spooling routine that sends data via INT 17h.
+0x00000086 [R1] This line decrements DX, the row counter in a nested loop that paints a character row in VRAM, looping back to fill the next row until all rows are done.
+0x00000155 [R1] This is a printer status check loop that calls INT 17h with AH=2 to read printer status, then tests bit 7 (XOR with 0x80) and checks bits 7,5,3,0 (test 0xA9) to determine if the printer is ready/online.
+0x000000A6 [R1] This is a column-count-dependent digit-fill loop that writes ASCII digits '1' through '9' (wrapping to '0') into video memory, using either 0x84 (132-column) or 0x50 (80-column) count based on a comparison at [0x14] with 0x30.
+0x00000001 [R1] This is the program entry point that sets DS=0x19 (the PSP segment), displays a sign-on string via INT 21h AH=9, then calculates the resident code size for possible termination-and-stay-resident setup.
+0x00000123 [R1] This is a call to INT 10h with AH=0 to set the video mode, using the value in AL that was stored from AH at [0x14] (the column mode selector).
+0x00000135 [R1] This is a DOS exit call via INT 21h with AX=0x4C00, terminating the current process with return code 0.
+0x0000002C [R1] This line calls INT 40h with AH=0 to get a character from the serial host link (Z8530 SCC), polling until one is available, as part of the main input loop.
+0x000000CF [R1] This line calls INT 16h with AH=0 to read a key from the keyboard buffer, blocking until a key is available, then tests the character for dispatch.
+0x00000083 [R1] This line stores AL (a space character 0x20) into the character plane of VRAM via `stosb`, filling a row of the display with spaces during screen clearing.
+0x00000064 [R1] This line stores AL (zero) into the character plane of VRAM via `stosb`, clearing a character cell as part of initializing a new display row.
+0x00000197 [R1] This line calls INT 17h with AH=0 to print a character (in AL) to the printer port, implementing the printer output service for the terminal.
+0x0000002A [R1] This line is a short jump (`jmp short 0x30`) that skips over an INT 40h call (AH=0) used to check if the kernel is ready, continuing to the main initialization loop that calls INT 40h AH=4 (get host record).
+0x0000003A [R1] This line stores zero (`mov [0xe],ax`) into a memory variable, clearing the segment pointer used to track allocated memory, as part of the DOS memory-resize (INT 21h AH=4Ah) and initialization sequence.
+0x00000171 [R1] This line calls INT 40h AH=4 (get host record) to fetch the next data block from the host, with the result tested by the subsequent `or ax,bx` to see if a valid record was returned.
+0x00000167 [R1] This line is a conditional jump (`jz 0x18f`) that branches if the printer status (from INT 17h AH=2) indicates no error, checking the `test ah,0xa9` result after XORing with 0x80 to mask the busy bit.
+0x0000001C [R1] This line subtracts the ES segment from BX (`sub bx,ax`) to compute the number of paragraphs needed for the DOS memory-resize call (INT 21h AH=4Ah), adjusting the program’s allocated memory block.
+0x00000018 [R1] This line computes the segment base for a memory resize operation by adding the stack segment (SS) to BX, which is part of calculating the program's memory size for INT 21h AH=4Ah (resize memory block).
+0x0000006E [R1] This line loads AX with 0x20 (space character) to be used as the fill character for clearing or padding a row in the video buffer, part of a column-width-dependent screen paint loop.
+0x0000001A [R1] This line moves the ES segment register into AX to compute the difference between the program's data segment and the stack-based memory top for the INT 21h AH=4Ah resize call.
+0x0000006A [R1] This line copies the base pointer (BP, starting at 0x40) into AX to store as the attribute byte in the attribute plane (ES:DI-0x8000) during a character/attribute write loop for screen painting.
+0x0000018F [R1] This line loads a byte from DS:SI (via lodsb) to fetch the next character for printing, part of a loop that sends characters to the printer via INT 17h until a '$' terminator is found.
+0x00000135 [R2] This line loads AX with 0x4C00 and calls INT 21h, which is the DOS exit function (AH=4Ch) to terminate the program with return code 0.
+0x00000123 [R2] This line executes INT 10h with AH=0, which sets the video mode (e.g., 80- or 132-column mode) based on the value in AL.
+0x00000079 [R2] This line is a conditional jump (JA) that checks if byte [0x14] > 0x30; if so, it skips setting CX to 0x4F, thus selecting the 132-column width (CX=0x83) versus 80-column (CX=0x4F).
+0x0000006A [R2] This line moves BP (the attribute byte, initially 0x40) into AX, which will then be stored as the attribute in the attribute plane (ES:DI-0x8000) for the current character cell.
+0x00000089 [R2] This line pops BX from the stack, restoring the pointer to the next character pair in the host record being processed for display.
+0x00000092 [R2] Sets the column count for a row-drawing loop based on a stored mode byte at [0x14]; if the byte is > 0x30 (i.e., 132-column mode), CX=0x84 (132), else CX=0x50 (80).
+0x00000052 [R2] Saves BX (a pointer into the ES segment) on the stack before reading a word from [ES:BX] to compute a VRAM destination address for clearing a character cell.
+0x00000030 [R2] Calls INT 40h with AH=4 to poll for a new host record (non-blocking receive), checking if ES:BX returns a valid segment:offset pointer.
+0x00000125 [R2] Clears the word at [0x0E] to zero, resetting the host record pointer to indicate no pending data, then jumps back to the polling loop.
+0x00000188 [R2] This line sets AL to 0x1 as the final branch in the same conditional chain for INT 40h AH=0x34, selecting the parameter when AL equals 0x64 (the zero flag is set from the prior comparison).
+0x00000192 [R2] This line is a conditional jump (JNZ) that checks if the loaded byte (AL) is not the string terminator '$' (0x24), branching to print it via INT 17h AH=0, or falling through to exit the print loop.
+0x0000016F [R2] This line sets AH=0x4 and calls INT 40h, which is the kernel’s custom API function to check if a host record is available (likely polling for incoming data from the synchronous serial link).
+0x000001A4 [R2] This line is a POP ES instruction that restores the extra segment register, occurring after a 7-byte data block (all zeros) and before a string constant, likely part of a subroutine epilogue or data boundary.
+0x00000142 [R2] This line decrements the byte at [0x6f], which is a counter used to track the number of characters in a buffer or a serial transmit count, before calling INT 40h with AH=0x20 to send a character via the serial host link.
+0x00000084 [R2] This is a `loop` instruction that repeats the preceding `mov [es:di-0x8000],ah` / `stosb` sequence, filling the attribute plane with a space character (0x20) for the full width of the screen (0x83 or 0x4f columns depending on 132/80 column mode).
+0x0000011E [R2] This line stores the character code from AL into the byte at [0x14], which is the current cursor column or a video mode parameter, before calling INT 10h with AH=0x00 to set the video mode.
+0x0000012B [R2] This is a `jmp 0x30` instruction that branches to the main event loop or keyboard dispatch routine, bypassing the subsequent DOS exit code (INT 21h AH=0x4c) and the serial character decrement logic.
+0x00000083 [R2] This `stosb` instruction writes the space character (0x20) from AL into the character plane of VRAM at [ES:DI], as part of a loop that clears a row of the display buffer.
+0x0000005C [R2] This code reads a word from the ES:BX pointer, swaps bytes (little-endian to big-endian), stores a null byte and attribute byte into dual-plane VRAM at the computed offset, and increments BX to advance through a host data record.
+0x0000015F [R2] This line calls INT 17h (printer service) with AH=2 to send a character to the printer port, then checks the printer status by XORing AH with 0x80 and testing bits 0xA9.
+0x0000019B [R2] This is a short jump back to address 0x15d, which re-enters the printer-output loop that sends characters from a string (pointed to by SI) via INT 17h until a ‘$’ terminator is found.
+0x00000146 [R2] This loads the byte at [0x6f] into AL, which is then passed with AH=0x20 to INT 40h (kernel custom API) to perform a system function using that value.
+0x000000A8 [R2] This resets AL to ‘0’ (0x30) when the column-number counter exceeds ‘9’, wrapping the digit for a 132-column row-number display loop that writes characters to VRAM.
+0x00000064 [R2] This line stores a null byte (AL=0) to the character plane of VRAM at [ES:DI], clearing a screen position. It is part of a routine that writes a character and its attribute to the dual-plane VRAM (character plane at ES:DI, attribute plane at ES:DI-0x8000), using the video hardware at I/O 0x340-0x343.
+0x00000016 [R2] This line moves the stack segment (SS) into AX to calculate the memory block size for a DOS INT 21h AH=4Ah (resize memory block) call. It computes the segment of the last used stack location, subtracts the program’s ES segment, and passes the resulting paragraph count to resize the allocated memory.
+0x00000167 [R2] This conditional jump checks if the printer status (returned by INT 17h AH=2, which reads printer status into AH) indicates an error or busy condition (test AH,0xA9). If zero (no error/busy), it jumps to 0x18F to continue; otherwise, it falls through to a system call (INT 40h AH=0) to check for a host record.
+0x000000D3 [R2] This conditional jump checks if the keyboard scan code (AL) is zero after an INT 16h AH=0 (read key) call. If AL=0 (extended key), it jumps to 0x119 to skip processing; otherwise, it proceeds to handle the character with INT 21h AH=7 (direct console input without echo).
+0x0000009E [R2] This line sets CX to 0x50 (80 decimal) for a loop that writes digit characters to VRAM, overriding the default 0x84 (132) when the terminal is in 80-column mode (byte at [0x14] <= 0x30). It is part of a routine that fills a row with incrementing digits (0-9) for a display test.
+0x000000C9 [R2] This line calls INT 16h with AH=1 to check if a key is available in the keyboard buffer (non-blocking keyboard status check), then jumps if zero (no key pressed).
+0x0000017C [R2] This line sets AH=0x34 and compares AL to 0x64 to determine a serial communication parameter (likely baud rate or timeout), then calls INT 40h with the computed value.
+0x00000018 [R2] This line adds the stack segment (SS) to BX to compute the top of available memory for a DOS INT 21h AH=4Ah (resize memory block) call.
+0x0000008D [R2] This line swaps bytes (xchg al,ah) to convert a little-endian word from VRAM into a big-endian column/row coordinate for cursor positioning.
+0x0000005E [R2] This line swaps bytes (xchg al,ah) to convert a little-endian word from VRAM into a big-endian screen address for clearing a character cell and its attribute.
+0x0000018C [R2] This line is a jump back to the main loop after a serial I/O call via INT 40h, used to check if the terminal width is 80 or 132 columns and set AL accordingly (0, 1, or 2) before the interrupt.
+0x0000000B [R2] This line calls DOS INT 21h function 09h to print a $-terminated string at DS:DX, displaying a startup or status message from the terminal emulator.
+0x00000194 [R2] This line jumps to the main loop (address 0x2c) after printing a character via INT 17h (printer output), specifically when the character is '$' (0x24) which terminates the string being printed.
+0x000000A6 [R2] This line checks if AL (an ASCII digit) is less than or equal to '9' (0x39), continuing a loop that fills VRAM with digit characters '0'-'9' for a screen test pattern, using CX as column count (0x50 for 80-col or 0x84 for 132-col).
+0x00000000 [R2] This line pushes DS onto the stack as the first instruction of the module, saving the original data segment for later restoration during program initialization.
+0x00000089 [R3] This line pops a previously saved display buffer offset from the stack into BX, then reads a word from the ES segment at that offset, swaps bytes (little-endian to big-endian), and uses it as the starting DI for a character fill loop that writes '1' through '9' across the screen, adjusting column count based on byte [0x14] (80 vs 132 column mode).
+0x00000155 [R3] This short jump (EB 06) skips over a printer port test path that sets DX=1 and SI=0xBB, landing at INT 17h AH=2 (printer character output) to send a byte to the printer, followed by status checking via XOR and TEST to verify printer readiness.
+0x000001FC [R3] These three bytes (0D 0A 24) are actually data (carriage return, line feed, and DOS string terminator '$') misdecoded as the instruction "or ax,0x240a" — they belong to the preceding "Running." string and the following "The Emulator..." termination message.
+0x0000011C [R3] This instruction moves AH into AL and stores it at [0x14] (the column mode flag), then calls INT 10h AH=0 (set video mode) to switch between 80 and 132 column display, before zeroing word [0x0E] and jumping to the main loop.
+0x000000A2 [R3] This increments AL (the current character being written) and compares it to '9', wrapping back to '0' if exceeded, as part of a loop that fills a row of the display with incrementing digits '1' through '9' in the character plane of VRAM.
+0x000000C9 [R3] This line calls INT 16h with AH=1 to check if a key is available in the keyboard buffer (non-destructive read), with the following JZ checking for no key pressed.
+0x00000188 [R3] This sets AL=1 as a parameter for INT 40h AH=0x34, which appears to be a system function that sets or returns a status based on comparing a value to 0x64 (100 decimal).
+0x00000016 [R3] This instruction moves the stack segment register (SS) into AX, which is part of calculating the memory block size for an INT 21h AH=4Ah (resize memory block) call.
+0x000001A4 [R3] This POP ES instruction restores the ES segment register, appearing after a printer output loop (INT 17h) and before a string message about "The Emulator (Version 0.177) is Running."
+0x0000018F [R3] This LODSB instruction loads a byte from [SI] into AL, which is part of a loop that prints characters to the printer via INT 17h until encountering a '$' terminator (0x24).
+0x0000012B [R3] The line jumps to address 0x30, which is the main dispatch loop that calls INT 40h with AH=4 to poll for a host record.
+0x000000AA [R3] The line is the `loop 0xa1` instruction that fills a row of VRAM with incrementing ASCII digits (0-9) for a 132-column or 80-column display.
+0x00000043 [R3] The line stores the segment of a memory block (from ES) into variable [0x12], saving it for later use in a heap/arena allocation routine.
+0x0000003F [R3] The line stores the offset of a memory block (from BX) into variable [0x10], part of the same allocation tracking as S3.
+0x0000002A [R3] The line jumps short to address 0x30, skipping the INT 40h AH=0 call and going directly to the host-poll dispatch loop.
+0x000000C7 [R3] This line checks the keyboard buffer via INT 16h AH=01h (get keyboard status) to see if a key is pending, and jumps if zero (no key) to skip processing.
+0x00000038 [R3] This line tests whether the ES:BX pointer from the INT 40h AH=04h call (memory allocation) returned a valid block; if nonzero (success), it stores the segment and offset, otherwise it loops back to retry.
+0x00000000 [R3] This is the program entry point that pushes DS to save it, then sets DS=0x19 and calls INT 21h AH=09h to print a sign-on string at DX=0x15.
+0x00000197 [R3] This line zeros AH (xor ah,ah) and calls INT 17h AH=00h to send a character to the printer (printer output function).
+0x0000018A [R3] This line calls INT 40h AH=34h with AL set to 0, 1, or 2 based on comparison with 0x64, implementing a system function that returns status or performs an action based on the value in AL.
+0x000000A1 [R3] This line writes the character in AL (starting at '1') to the video character plane via `STOSB`, filling a row with digits 1-9 repeatedly based on column count (0x84 or 0x50) determined by a 80/132 column flag at [0x14].
+0x0000003A [R3] This line stores AX (which is zero from the `or ax,bx` result) into memory variable [0xE], marking that no valid memory block was allocated, causing the routine to loop back and retry allocation via INT 40h AH=0.
+0x0000007E [R3] This line writes the attribute byte (AH, initially 0x20 = green on black) to the attribute plane (ES:DI-0x8000) for each character position, filling the row's attribute plane during screen clear.
+0x0000005D [R3] This line increments BX by 2 (second `inc bx`) to skip the next word in the ES:BX memory block, advancing the pointer past a 16-bit value (likely a row offset) during screen row initialization.
+0x00000095 [R3] This line loads AL with 0x31 (ASCII '1'), the starting digit character for a row-fill loop that writes digits 1-9 repeatedly across the screen, used for a display test pattern.
+0x00000022 [R3] This line sets up a DOS exit call by loading AX with 0x4C00 and then executing INT 21h to terminate the current process with return code 0.
+0x00000138 [R3] This line executes INT 21h with AH=0x4C, performing a DOS program exit (terminate with return code in AL).
+0x00000135 [R3] This line loads AX with 0x4C00 to prepare the DOS exit function code and return code before the INT 21h call.
+0x0000013A [R3] This line increments the byte at memory address [0x6F], which is likely a counter or status variable used by the terminal emulator.
+0x00000173 [R3] This line moves the value of the ES segment register into AX, used to check if the ES segment is zero (indicating no memory block allocated) before continuing a loop.
+0x000000B0 [R3] The `xchg al,ah` at 0xB0 swaps bytes of a word loaded from `[es:bx+0x14]` to convert a little-endian stored value into a big-endian offset for VRAM addressing.
+0x00000133 [R3] The `int 0x21` at 0x133 calls DOS function AH=9 (print $-terminated string at DS:DX=0x40) to display an error or status message before exiting.
+0x00000008 [R3] The `mov dx,0x15` at 0x08 sets DS:DX to point to a $-terminated string at offset 0x15 for DOS print via INT 21h AH=9.
+0x00000065 [R3] The `mov [es:di-0x8000],al` at 0x065 writes a null byte to the attribute plane (offset -0x8000 from the character plane) to clear the attribute for a character just stored.
+0x000000B5 [R3] The `add di,byte +0xa` at 0x0B5 advances the VRAM destination pointer by 10 bytes to skip past a field boundary (e.g., column offset or attribute gap) before copying a string.
+0x00000028 [R3] This line calls INT 10h (video BIOS) to set the video mode, likely initializing the display for the terminal emulator.
+0x00000179 [R3] This line jumps back to address 0x2C, which is part of the main loop that calls INT 40h with AH=0 (system function) to check for host communication.
+0x0000009E [R3] This line sets CX to 0x50 (80 decimal) when the byte at [0x14] is ≤ 0x30, configuring the column count for 80-column mode instead of 132-column mode.
+0x00000013 [R3] This line shifts BX right by 4 bits to convert the stack pointer adjustment into a paragraph value for the INT 21h AH=4Ah (resize memory block) call.
+0x00000199 [R3] This line calls INT 17h (printer BIOS) to send a character to the printer, part of the printer output routine in the terminal emulator.
+0x00000043 [R4] Stores the ES segment register into memory at offset 0x12, saving the segment of a newly allocated or resized memory block after an INT 40h call (AH=0 or AH=4).
+0x000000BE [R4] Executes a `rep movsb` to copy 0x28 bytes from DS:SI (0x15) to ES:DI (a character buffer offset), used to fill a display row for video output.
+0x00000175 [R4] Performs `or ax,bx` to test if both AX (ES segment) and BX (offset) are zero after an INT 40h AH=4 call, checking for a null pointer indicating no more data.
+0x00000038 [R4] Jumps if not zero (jnz) to address 0x3F after ORing AX and BX, checking if a memory block was successfully allocated/resized via INT 40h AH=4.
+0x00000087 [R4] This is the inner loop of a screen-clearing routine that fills the character plane with spaces (0x20) and the attribute plane with the current attribute byte, decrementing a row counter until zero.
+0x00000192 [R4] This is a printer-output loop that loads a byte from a string, checks for the end-of-string marker (0x24 = ‘$’), and if not found, calls INT 17h AH=0 to print the character.
+0x00000142 [R4] This decrements a byte counter at [0x6f], then calls INT 40h AH=0x20 (a system function) with the new count, likely to update a timeout or retry counter.
+0x0000018F [R4] This is the same printer-output loop as Sample 2, loading a byte with `lodsb`, comparing to 0x24 (‘$’), and calling INT 17h AH=0 to print non-terminator characters.
+0x0000016F [R4] This calls INT 40h AH=4 (a system service) after a previous INT 40h AH=0 returned with no error, likely to perform a host communication or buffer operation.
+0x00000150 [R4] This code initializes a printer port test by setting DX=0 (LPT1) and SI=0x70 (test pattern pointer), then calling INT 17h AH=2 to send a character to the printer, followed by checking printer status via XOR/AND operations on AH.
+0x0000008F [R4] This line loads DI with the value from ES:BX (after byte swap) to set the starting VRAM address for drawing a row of incrementing ASCII digits ('1' through '9') across the screen, with column count determined by comparing byte [0x14] to 0x30.
+0x00000000 [R4] This is the program entry point that saves DS, sets DS=0x19 (likely the PSP segment), and calls INT 21h AH=9 to print a string at DX=0x15 (the copyright/version banner).
+0x0000002C [R4] This line calls INT 40h AH=0 (kernel system function) to perform some initialization or check, likely polling for a system event or waiting for the kernel to be ready before proceeding with terminal emulation setup.
+0x0000003D [R4] This is a conditional jump that loops back to address 0x2C (the INT 40h AH=0 call) when ES:AX is zero, creating a busy-wait loop that repeatedly calls the kernel until a non-zero value is returned, indicating some resource or event is available.
+0x000000AA [R4] The `loop 0xa1` instruction at 0xAA fills a row of the screen with incrementing ASCII digits ('0'-'9') starting from column 0x31, using CX as the column count (0x84 for 132-column mode or 0x50 for 80-column mode), and resets to '0' after '9'.
+0x00000036 [R4] The `or ax,bx` instruction at 0x36 tests whether the segment register ES (in AX) and the heap size BX are both zero, branching to a reset/retry path if so; this is part of a DOS INT 21h AH=4Ah (resize memory block) call sequence.
+0x00000157 [R4] The `mov dx,0x1` at 0x157 sets DX=1 (printer number) for an INT 17h AH=2 (print character) call, sending the byte at DS:SI (0xBB) to the printer.
+0x00000004 [R4] The `mov ds,ax` at 0x04 sets the data segment to 0x19 (the PSP segment) immediately after entry, as part of the standard DOS program startup sequence before calling INT 21h AH=9 to print a string.
+0x00000190 [R4] The `cmp al,0x24` at 0x190 checks if the character loaded from DS:SI is '$' (the DOS string terminator), and if so jumps to 0x2C to exit the printer-output loop.
+0x000000BB [R4] This line sets up a 40-byte (0x28) block copy operation via `rep movsb` to transfer a character row or attribute data into the video buffer, likely for a 40-column display mode.
+0x0000007E [R4] This line writes the attribute byte (AH=0x20, space attribute) to the attribute plane at `[ES:DI-0x8000]` while the character byte (AL=0x20) is stored to the character plane, clearing a cell in dual-plane VRAM.
+0x00000130 [R4] This line loads DX=0x40 and calls INT 21h AH=9 to print a $-terminated string at offset 0x40 in the data segment, likely an error or exit message before terminating via INT 21h AH=0x4C.
+0x0000004C [R4] This line checks if word `[0x0E]` is zero; if not zero (`jnz 0xC7`), it skips initialization, indicating this is a guard to avoid reinitializing the video buffer pointer.
+0x00000065 [R4] This line stores a null byte (AL=0) into the attribute plane at `[ES:DI-0x8000]` to clear the attribute for the current character cell during screen buffer initialization.
+0x0000015F [R4] This line calls INT 17h with AH=2 to send a character to the printer, specifically sending the byte in DL (0x01 or 0x00) to the printer port for a printer-port test or status check.
+0x0000006A [R4] This line loads BP (0x40) into AX to use as the attribute byte for the character being written to the VRAM attribute plane, setting the initial display attribute (e.g., normal intensity) for the row being painted.
+0x00000135 [R4] This line loads AX with 0x4C00 to prepare for an INT 21h call (AH=0x4C) that terminates the current process and returns exit code 0, used as a clean exit from the module.
+0x0000006E [R4] This line loads AX with 0x20 (space character) to be stored into the character plane of VRAM, filling the rest of the row with spaces after placing the initial character from the host data.
+0x0000011E [R4] This line stores the value in AL (the keyboard scan code or character from AH) into memory at [0x14], which is used to set the current video column width or mode parameter before calling INT 10h to reconfigure the display.
+0x00000097 [R4] This code checks if the terminal is in 132-column mode by comparing byte at [0x14] to 0x30, and sets CX to 0x50 (80 columns) if below/equal or 0x84 (132 columns) if above, controlling the number of fill characters written to VRAM.
+0x000001FC [R4] This is data misdecoded as code — the bytes 0D 0A 24 are actually a CR/LF/string terminator sequence following the preceding string, not an `or ax,0x240a` instruction.
+0x00000013 [R4] This line calculates the paragraph-aligned size of the current program's memory segment (SS:SP + 0xF shifted right 4 bits) for the INT 21h AH=4Ah (resize memory block) call, adjusting the allocated memory to fit the program.
+0x000000D5 [R4] This sets AH=7 for a keyboard input call via INT 16h (keyboard BIOS), which reads a character without echo, used in the keyboard dispatch chain to process typed input.
+0x00000064 [R4] This `stosb` instruction writes a null byte (AL=0) to the character plane of VRAM at [ES:DI], clearing the first character position of a row during the display painting routine.
+0x00000018 [R4] This line computes the segment base for a memory resize operation by adding the stack segment to BX, preparing for an INT 21h AH=4Ah (resize memory block) call.
+0x000000A6 [R4] This conditional jump checks if the character counter has exceeded '9' (0x39), wrapping the digit sequence back to '0' (0x30) for the column-number display loop.
+0x000000A1 [R4] This instruction stores the starting digit character '1' (0x31) into video memory at the current position, beginning the column-number display sequence.
+0x00000059 [R4] This instruction loads a word from the ES:BX pointer, which contains a video memory address for clearing a character cell and its attribute byte in the dual-plane VRAM.
+0x00000056 [R4] This instruction sets BP to 0x40 (64 decimal), which serves as the initial attribute value for the first character cell being cleared in the video memory initialization routine.

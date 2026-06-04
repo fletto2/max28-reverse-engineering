@@ -1,0 +1,42 @@
+[
+  {
+    "name": "MFGTEST.EXE",
+    "dir_entry": 180,
+    "load_seg": 768,
+    "file_off": 12288,
+    "size": 6090,
+    "end": 18378
+  },
+  {
+    "name": "CONFIG.SYS",
+    "dir_entry": 216,
+    "load_seg": 512,
+    "file_off": 8192,
+    "size": 1,
+    "end": 8193
+  },
+  {
+    "name": "CONFIG.BLK",
+    "dir_entry": 234,
+    "load_seg": 384,
+    "file_off": 6144,
+    "size": 856,
+    "end": 7000
+  },
+  {
+    "name": "EMULATOR.EXE",
+    "dir_entry": 252,
+    "load_seg": 256,
+    "file_off": 4096,
+    "size": 1172,
+    "end": 5268
+  },
+  {
+    "name": "DOWNLOAD.EXE",
+    "dir_entry": 270,
+    "load_seg": 128,
+    "file_off": 2048,
+    "size": 2042,
+    "end": 4090
+  }
+]

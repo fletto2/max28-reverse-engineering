@@ -1,0 +1,7 @@
+# excluded from the repo
+CLAUDE.md
+*.py
+*.pyc
+__pycache__/
+*.log
+max28_manual.pdf
