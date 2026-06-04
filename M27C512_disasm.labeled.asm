@@ -165,22 +165,22 @@
 00006018  A0B907            mov al,[0x7b9]
 0000601B  BA4303            mov dx,0x343
 0000601E  24BF              and al,0xbf
-00006020  EE                out dx,al
+00006020  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006021  A1BA07            mov ax,[0x7ba]
 00006024  A37809            mov [0x978],ax
 00006027  BA9400            mov dx,0x94
 0000602A  B409              mov ah,0x9
-0000602C  CD21              int 0x21
+0000602C  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000602E  8B4604            mov ax,[bp+0x4]
 00006031  E80501            call dos_hexprint_print_06139   ; ->0x6139
 00006034  B402              mov ah,0x2
 00006036  B23A              mov dl,0x3a
-00006038  CD21              int 0x21
+00006038  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000603A  8B4602            mov ax,[bp+0x2]
 0000603D  E8F900            call dos_hexprint_print_06139   ; ->0x6139
 00006040  BAB300            mov dx,0xb3
 00006043  B409              mov ah,0x9
-00006045  CD21              int 0x21
+00006045  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006047  BEAB00            mov si,0xab
 0000604A  03361409          add si,[0x914]
 0000604E  B90C00            mov cx,0xc
@@ -190,99 +190,99 @@ loc_06051:
 00006054  7408              jz loc_0605E   ; ->0x605E
 00006056  8AD0              mov dl,al
 00006058  B402              mov ah,0x2
-0000605A  CD21              int 0x21
+0000605A  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000605C  E2F3              loop loc_06051   ; ->0x6051
 loc_0605E:
 0000605E  BAC300            mov dx,0xc3
 00006061  B409              mov ah,0x9
-00006063  CD21              int 0x21
+00006063  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006065  8B46FE            mov ax,[bp-0x2]
 00006068  E8CE00            call dos_hexprint_print_06139   ; ->0x6139
 0000606B  BAD300            mov dx,0xd3
 0000606E  B409              mov ah,0x9
-00006070  CD21              int 0x21
+00006070  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006072  8B46F8            mov ax,[bp-0x8]
 00006075  E8C100            call dos_hexprint_print_06139   ; ->0x6139
 00006078  BADB00            mov dx,0xdb
 0000607B  B409              mov ah,0x9
-0000607D  CD21              int 0x21
+0000607D  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000607F  8B46FC            mov ax,[bp-0x4]
 00006082  E8B400            call dos_hexprint_print_06139   ; ->0x6139
 00006085  BAE300            mov dx,0xe3
 00006088  B409              mov ah,0x9
-0000608A  CD21              int 0x21
+0000608A  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000608C  8B46FA            mov ax,[bp-0x6]
 0000608F  E8A700            call dos_hexprint_print_06139   ; ->0x6139
 00006092  BAEB00            mov dx,0xeb
 00006095  B409              mov ah,0x9
-00006097  CD21              int 0x21
+00006097  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006099  8B46F2            mov ax,[bp-0xe]
 0000609C  E89A00            call dos_hexprint_print_06139   ; ->0x6139
 0000609F  BAF200            mov dx,0xf2
 000060A2  B409              mov ah,0x9
-000060A4  CD21              int 0x21
+000060A4  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060A6  8B46F0            mov ax,[bp-0x10]
 000060A9  E88D00            call dos_hexprint_print_06139   ; ->0x6139
 000060AC  BAFA00            mov dx,0xfa
 000060AF  B409              mov ah,0x9
-000060B1  CD21              int 0x21
+000060B1  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060B3  8BC5              mov ax,bp
 000060B5  050800            add ax,0x8
 000060B8  8BF0              mov si,ax
 000060BA  E87C00            call dos_hexprint_print_06139   ; ->0x6139
 000060BD  BA0201            mov dx,0x102
 000060C0  B409              mov ah,0x9
-000060C2  CD21              int 0x21
+000060C2  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060C4  8B4600            mov ax,[bp+0x0]
 000060C7  E86F00            call dos_hexprint_print_06139   ; ->0x6139
 000060CA  BA0A01            mov dx,0x10a
 000060CD  B409              mov ah,0x9
-000060CF  CD21              int 0x21
+000060CF  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060D1  8B46EE            mov ax,[bp-0x12]
 000060D4  E86200            call dos_hexprint_print_06139   ; ->0x6139
 000060D7  BA1101            mov dx,0x111
 000060DA  B409              mov ah,0x9
-000060DC  CD21              int 0x21
+000060DC  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060DE  8B46EC            mov ax,[bp-0x14]
 000060E1  E85500            call dos_hexprint_print_06139   ; ->0x6139
 ;>>>> [INT21-DOS] Loads DX with the offset of a '$'-terminated label string (0x119) for the immediately following INT 21h AH=9 print, part of a register/stack-frame diagnostic dump printing [bp+0],[bp-0x12],[bp-0x14],SS,[bp+6] each via hex-print helper call 0x6139.  // mov dx,0x119 ; mov ah,0x9 ; int 0x21; preceded by call 0x6139 and mov dx,0x111 sequence
 000060E4  BA1901            mov dx,0x119
 000060E7  B409              mov ah,0x9
-000060E9  CD21              int 0x21
+000060E9  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060EB  8CD0              mov ax,ss
 000060ED  E84900            call dos_hexprint_print_06139   ; ->0x6139
 ;>>>> [INT21-DOS] Loads DX=0x121 with the offset of a '$'-terminated label string for the immediately following INT 21h AH=09h print, in the register/stack-frame diagnostic dump that prints SS via hex-print helper 0x6139 then this label (same dump as accepted 0x60e4).  // mov ax,ss / call 0x6139 / mov dx,0x121 / mov ah,0x9 / int 0x21
 000060F0  BA2101            mov dx,0x121
 000060F3  B409              mov ah,0x9
-000060F5  CD21              int 0x21
+000060F5  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000060F7  8B4606            mov ax,[bp+0x6]
 000060FA  E83C00            call dos_hexprint_print_06139   ; ->0x6139
 000060FD  BA2C01            mov dx,0x12c
 00006100  B409              mov ah,0x9
-00006102  CD21              int 0x21
+00006102  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006104  BF0800            mov di,0x8
 loc_06107:
 00006107  8CD0              mov ax,ss
 00006109  E82D00            call dos_hexprint_print_06139   ; ->0x6139
 0000610C  B402              mov ah,0x2
 0000610E  B23A              mov dl,0x3a
-00006110  CD21              int 0x21
+00006110  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006112  8BC6              mov ax,si
 00006114  E82200            call dos_hexprint_print_06139   ; ->0x6139
 00006117  B402              mov ah,0x2
 00006119  B220              mov dl,0x20
-0000611B  CD21              int 0x21
+0000611B  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000611D  B90800            mov cx,0x8
 loc_06120:
 00006120  B402              mov ah,0x2
 00006122  B220              mov dl,0x20
-00006124  CD21              int 0x21
+00006124  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006126  36AD              ss lodsw
 00006128  E80E00            call dos_hexprint_print_06139   ; ->0x6139
 0000612B  E2F3              loop loc_06120   ; ->0x6120
 0000612D  BA2D01            mov dx,0x12d
 00006130  B409              mov ah,0x9
-00006132  CD21              int 0x21
+00006132  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006134  4F                dec di
 00006135  75D0              jnz loc_06107   ; ->0x6107
 00006137  EBFE              jmp short 0x6137
@@ -299,7 +299,7 @@ loc_06142:
 00006148  D7                xlatb
 00006149  8AD0              mov dl,al
 0000614B  B402              mov ah,0x2
-0000614D  CD21              int 0x21
+0000614D  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000614F  58                pop ax
 00006150  E2F0              loop loc_06142   ; ->0x6142
 00006152  5F                pop di
@@ -362,11 +362,11 @@ loc_061AD:
 000061C7  FF063001          inc word [0x130]
 000061CB  50                push ax
 000061CC  B85E0E            mov ax,0xe5e
-000061CF  CD10              int 0x10
+000061CF  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000061D1  58                pop ax
 000061D2  0440              add al,0x40
 000061D4  B40E              mov ah,0xe
-000061D6  CD10              int 0x10
+000061D6  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000061D8  C3                ret
 loc_061D9:
 000061D9  C70630010000      mov word [0x130],0x0
@@ -394,21 +394,21 @@ dos_vram_061FA:
 0000620E  1F                pop ds
 0000620F  BAF814            mov dx,0x14f8
 00006212  B409              mov ah,0x9
-00006214  CD21              int 0x21
+00006214  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006216  1F                pop ds
 sub_06217:
 00006217  BA4207            mov dx,0x742
 0000621A  B409              mov ah,0x9
-0000621C  CD21              int 0x21
+0000621C  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000621E  33D2              xor dx,dx
 00006220  B426              mov ah,0x26
-00006222  CD40              int 0x40
+00006222  CD40              int 0x40   ; INT 40h AH=0x26: get terminal mode/attr
 00006224  80C230            add dl,0x30
 00006227  B402              mov ah,0x2
-00006229  CD21              int 0x21
+00006229  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000622B  B22E              mov dl,0x2e
 0000622D  B402              mov ah,0x2
-0000622F  CD21              int 0x21
+0000622F  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006231  8AC6              mov al,dh
 00006233  32E4              xor ah,ah
 00006235  B664              mov dh,0x64
@@ -417,7 +417,7 @@ sub_06217:
 0000623B  8AD0              mov dl,al
 0000623D  50                push ax
 0000623E  B402              mov ah,0x2
-00006240  CD21              int 0x21
+00006240  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006242  58                pop ax
 00006243  8AC4              mov al,ah
 00006245  32E4              xor ah,ah
@@ -427,15 +427,15 @@ sub_06217:
 0000624D  8AD0              mov dl,al
 0000624F  50                push ax
 00006250  B402              mov ah,0x2
-00006252  CD21              int 0x21
+00006252  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006254  58                pop ax
 00006255  8AD4              mov dl,ah
 00006257  80C230            add dl,0x30
 0000625A  B402              mov ah,0x2
-0000625C  CD21              int 0x21
+0000625C  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000625E  BA4F07            mov dx,0x74f
 00006261  B409              mov ah,0x9
-00006263  CD21              int 0x21
+00006263  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006265  B800E0            mov ax,0xe000
 00006268  E81B00            call sub_06286   ; ->0x6286
 0000626B  8BEA              mov bp,dx
@@ -449,7 +449,7 @@ loc_06279:
 0000627B  E89009            call dos_hexprint_print_06C0E   ; ->0x6C0E
 0000627E  BA5E07            mov dx,0x75e
 00006281  B409              mov ah,0x9
-00006283  CD21              int 0x21
+00006283  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006285  C3                ret
 sub_06286:
 00006286  1E                push ds
@@ -469,7 +469,7 @@ loc_06296:
 0000629C  A3CE01            mov [0x1ce],ax
 0000629F  BAD301            mov dx,0x1d3
 000062A2  B409              mov ah,0x9
-000062A4  CD21              int 0x21
+000062A4  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000062A6  C3                ret
 sub_062A7:
 000062A7  BA3601            mov dx,0x136
@@ -486,18 +486,18 @@ loc_062BC:
 000062BD  07                pop es
 000062BE  BBC001            mov bx,0x1c0
 000062C1  B8004B            mov ax,0x4b00
-000062C4  CD21              int 0x21
+000062C4  CD21              int 0x21   ; INT 21h AH=0x4b: EXEC (load+run module)
 000062C6  730C              jnc loc_062D4   ; ->0x62D4
 000062C8  50                push ax
 000062C9  BACF02            mov dx,0x2cf
 000062CC  B409              mov ah,0x9
-000062CE  CD21              int 0x21
+000062CE  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000062D0  58                pop ax
 000062D1  E83A09            call dos_hexprint_print_06C0E   ; ->0x6C0E
 loc_062D4:
 000062D4  BAE602            mov dx,0x2e6
 000062D7  B409              mov ah,0x9
-000062D9  CD21              int 0x21
+000062D9  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000062DB  C606730800        mov byte [0x873],0x0
 000062E0  C3                ret
 loc_062E1:
@@ -517,10 +517,10 @@ sub_062EC:
 00006300  74DF              jz loc_062E1   ; ->0x62E1
 loc_06302:
 00006302  B40E              mov ah,0xe
-00006304  CD10              int 0x10
+00006304  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006306  B00A              mov al,0xa
 00006308  B40E              mov ah,0xe
-0000630A  CD10              int 0x10
+0000630A  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000630C  32C0              xor al,al
 0000630E  3806D201          cmp [0x1d2],al
 00006312  74D0              jz sub_062E4   ; ->0x62E4
@@ -536,11 +536,11 @@ loc_06302:
 0000632B  758F              jnz loc_062BC   ; ->0x62BC
 loc_0632D:
 0000632D  B8003D            mov ax,0x3d00
-00006330  CD21              int 0x21
+00006330  CD21              int 0x21   ; INT 21h AH=0x3d: open file
 00006332  7308              jnc loc_0633C   ; ->0x633C
 00006334  BA9902            mov dx,0x299
 00006337  B409              mov ah,0x9
-00006339  CD21              int 0x21
+00006339  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000633B  C3                ret
 loc_0633C:
 0000633C  A33201            mov [0x132],ax
@@ -560,7 +560,7 @@ loc_0635A:
 0000635A  A2D201            mov [0x1d2],al
 0000635D  BAD301            mov dx,0x1d3
 00006360  B409              mov ah,0x9
-00006362  CD21              int 0x21
+00006362  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006364  1E                push ds
 00006365  07                pop es
 00006366  BF6701            mov di,0x167
@@ -572,7 +572,7 @@ loc_06369:
 00006374  73F3              jnc loc_06369   ; ->0x6369
 00006376  AA                stosb
 00006377  B40E              mov ah,0xe
-00006379  CD10              int 0x10
+00006379  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000637B  EBEC              jmp short 0x6369
 loc_0637D:
 0000637D  893ECE01          mov [0x1ce],di
@@ -592,11 +592,11 @@ loc_0638C:
 loc_06399:
 00006399  8B1E3201          mov bx,[0x132]
 0000639D  B8003E            mov ax,0x3e00
-000063A0  CD21              int 0x21
+000063A0  CD21              int 0x21   ; INT 21h AH=0x3e: close handle
 000063A2  C3                ret
 loc_063A3:
 000063A3  B400              mov ah,0x0
-000063A5  CD40              int 0x40
+000063A5  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 dos_fread_063A7:
 000063A7  803E740800        cmp byte [0x874],0x0
 000063AC  75F5              jnz loc_063A3   ; ->0x63A3
@@ -616,7 +616,7 @@ loc_063BD:
 ;>>>> [INT21-DOS] Loads the file handle from [0x132] into BX in preparation for the INT 21h AH=3Fh (DOS read) on the next lines; reads up to 0x80 (128) bytes from the open config/script file into buffer at SI=0x9CA. Part of the line-reader/getchar refill routine for a config or download file.  // 8B1E3201 mov bx,[0x132] then B8003F mov ax,0x3f00 (AH=3Fh read) then CD21 int 0x21, cx=0x80 buffer
 000063C5  8B1E3201          mov bx,[0x132]
 000063C9  B8003F            mov ax,0x3f00
-000063CC  CD21              int 0x21
+000063CC  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 000063CE  7302              jnc loc_063D2   ; ->0x63D2
 000063D0  33C0              xor ax,ax
 loc_063D2:
@@ -675,22 +675,22 @@ loc_0643C:
 loc_06443:
 00006443  52                push dx
 00006444  B402              mov ah,0x2
-00006446  CD21              int 0x21
+00006446  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006448  86D6              xchg dl,dh
 ;>>>> [INT21-DOS] Sets AH=2 (INT 21h DOS char-output function) before the INT 21h on the next line, to print the second BCD digit of a two-digit field. The preceding XCHG DL,DH swapped the two packed digits so the high digit is output first then this low digit; part of a time/clock formatting routine (prints "HH" then ':' (0x3A) then space).  // B402 mov ah,0x2 followed by CD21 int 0x21; preceded by 86D6 xchg dl,dh and B23A mov dl,0x3a (':')
 0000644A  B402              mov ah,0x2
-0000644C  CD21              int 0x21
+0000644C  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000644E  B23A              mov dl,0x3a
 00006450  B402              mov ah,0x2
-00006452  CD21              int 0x21
+00006452  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006454  B220              mov dl,0x20
 00006456  B402              mov ah,0x2
-00006458  CD21              int 0x21
+00006458  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000645A  8B4704            mov ax,[bx+0x4]
 0000645D  E8AE07            call dos_hexprint_print_06C0E   ; ->0x6C0E
 00006460  B220              mov dl,0x20
 00006462  B402              mov ah,0x2
-00006464  CD21              int 0x21
+00006464  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 00006466  8DB7AB00          lea si,[bx+0xab]
 0000646A  B90C00            mov cx,0xc
 loc_0646D:
@@ -702,7 +702,7 @@ loc_0646D:
 loc_06475:
 00006475  8AD0              mov dl,al
 00006477  B402              mov ah,0x2
-00006479  CD21              int 0x21
+00006479  CD21              int 0x21   ; INT 21h AH=0x02: print char DL
 0000647B  E2F0              loop loc_0646D   ; ->0x646D
 0000647D  8A87A700          mov al,[bx+0xa7]
 00006481  BA2902            mov dx,0x229
@@ -715,7 +715,7 @@ loc_06475:
 dos_print_status_06492:
 ;>>>> [INT21-DOS] Loads AH=9 for the INT 21h print-$-terminated-string call at 0x6494, after DX was selected among message offsets 0x229/0x237/0x21b based on a status byte [bx+0xa7] (sign/==2 tests) - prints a self-test status/result message.  // prior mov dx,0x229/0x237/0x21b chosen by test al,al(js)/cmp al,2(jz); 0x6492 B409 'mov ah,0x9' then int 0x21
 00006492  B409              mov ah,0x9
-00006494  CD21              int 0x21
+00006494  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006496  E8153A            call sub_09EAE   ; ->0x9EAE
 00006499  C1C004            rol ax,byte 0x4
 0000649C  BA0F00            mov dx,0xf
@@ -724,7 +724,7 @@ dos_print_status_06492:
 000064A4  E88407            call sub_06C2B   ; ->0x6C2B
 000064A7  BA4502            mov dx,0x245
 000064AA  B409              mov ah,0x9
-000064AC  CD21              int 0x21
+000064AC  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000064AE  8B4708            mov ax,[bx+0x8]
 000064B1  33D2              xor dx,dx
 000064B3  F7363401          div word [0x134]
@@ -736,19 +736,19 @@ loc_064BF:
 000064C1  E307              jcxz loc_064CA   ; ->0x64CA
 loc_064C3:
 000064C3  B82A0E            mov ax,0xe2a
-000064C6  CD10              int 0x10
+000064C6  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000064C8  E2F9              loop loc_064C3   ; ->0x64C3
 loc_064CA:
 000064CA  BAF801            mov dx,0x1f8
 000064CD  B409              mov ah,0x9
-000064CF  CD21              int 0x21
+000064CF  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000064D1  5A                pop dx
 000064D2  E959FF            jmp loc_0642E   ; ->0x642E
 000064D5  BE3C05            mov si,0x53c
 loc_064D8:
 000064D8  B402              mov ah,0x2
 000064DA  33D2              xor dx,dx
-000064DC  CD17              int 0x17
+000064DC  CD17              int 0x17   ; INT 17h printer
 000064DE  50                push ax
 000064DF  E83207            call sub_06C14   ; ->0x6C14
 000064E2  58                pop ax
@@ -761,7 +761,7 @@ loc_064D8:
 000064EE  7408              jz loc_064F8   ; ->0x64F8
 000064F0  32E4              xor ah,ah
 000064F2  33D2              xor dx,dx
-000064F4  CD17              int 0x17
+000064F4  CD17              int 0x17   ; INT 17h printer
 000064F6  EBE0              jmp short 0x64d8
 loc_064F8:
 000064F8  C3                ret
@@ -773,9 +773,9 @@ loc_064F8:
 00006509  BAE106            mov dx,0x6e1
 loc_0650C:
 0000650C  B409              mov ah,0x9
-0000650E  CD21              int 0x21
+0000650E  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006510  B80700            mov ax,0x7
-00006513  CD10              int 0x10
+00006513  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006515  C606850901        mov byte [0x985],0x1
 0000651A  C3                ret
 0000651B  8036870902        xor byte [0x987],0x2
@@ -786,7 +786,7 @@ loc_0650C:
 0000652D  EBDD              jmp short 0x650c
 0000652F  BA8102            mov dx,0x281
 00006532  B409              mov ah,0x9
-00006534  CD21              int 0x21
+00006534  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006536  A0AA07            mov al,[0x7aa]
 00006539  FEC0              inc al
 0000653B  3C0A              cmp al,0xa
@@ -806,7 +806,7 @@ loc_06541:
 00006552  BA5D05            mov dx,0x55d
 00006555  03D0              add dx,ax
 00006557  B409              mov ah,0x9
-00006559  CD21              int 0x21
+00006559  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000655B  1F                pop ds
 0000655C  C3                ret
 0000655D  3330              xor si,[bx+si]
@@ -855,17 +855,17 @@ loc_065C1:
 000065C1  BA8CFF            mov dx,0xff8c
 000065C4  B800D0            mov ax,0xd000
 000065C7  02062505          add al,[0x525]
-000065CB  EE                out dx,al
+000065CB  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 000065CC  BA1105            mov dx,0x511
 ;>>>> [INT21-DOS] Sets DOS print-$-string function (AH=0x9) for the immediately following INT 21h that prints the message at DX=0x511, in the self-test that just programmed video chip-select port 0xff8c with 0xd000+[0x525]; labels a test/status message.  // mov dx,0x511 / >>mov ah,0x9 / int 0x21 ; preceding out 0xff8c (mov ax,0xd000 / add al,[0x525])
 000065CF  B409              mov ah,0x9
-000065D1  CD21              int 0x21
+000065D1  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000065D3  B8300E            mov ax,0xe30
 000065D6  02062505          add al,[0x525]
-000065DA  CD10              int 0x10
+000065DA  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000065DC  BAF801            mov dx,0x1f8
 000065DF  B409              mov ah,0x9
-000065E1  CD21              int 0x21
+000065E1  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000065E3  C3                ret
 000065E4  FE063B05          inc byte [0x53b]
 000065E8  803E3B050A        cmp byte [0x53b],0xa
@@ -875,16 +875,16 @@ loc_065F4:
 000065F4  BA88FF            mov dx,0xff88
 000065F7  B800C0            mov ax,0xc000
 000065FA  02063B05          add al,[0x53b]
-000065FE  EE                out dx,al
+000065FE  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 000065FF  BA2605            mov dx,0x526
 00006602  B409              mov ah,0x9
-00006604  CD21              int 0x21
+00006604  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006606  B8300E            mov ax,0xe30
 00006609  02063B05          add al,[0x53b]
-0000660D  CD10              int 0x10
+0000660D  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000660F  BAF801            mov dx,0x1f8
 00006612  B409              mov ah,0x9
-00006614  CD21              int 0x21
+00006614  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006616  C3                ret
 00006617  BA4303            mov dx,0x343
 0000661A  FA                cli
@@ -894,7 +894,7 @@ loc_065F4:
 00006622  2507F8            and ax,0xf807
 00006625  0AC4              or al,ah
 00006627  A2B907            mov [0x7b9],al
-0000662A  EE                out dx,al
+0000662A  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000662B  FB                sti
 0000662C  50                push ax
 0000662D  BA9505            mov dx,0x595
@@ -903,15 +903,15 @@ loc_065F4:
 00006634  BAB905            mov dx,0x5b9
 loc_06637:
 00006637  B409              mov ah,0x9
-00006639  CD21              int 0x21
+00006639  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000663B  58                pop ax
 0000663C  2403              and al,0x3
 0000663E  0430              add al,0x30
 00006640  B40E              mov ah,0xe
-00006642  CD10              int 0x10
+00006642  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006644  BAF801            mov dx,0x1f8
 00006647  B409              mov ah,0x9
-00006649  CD21              int 0x21
+00006649  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000664B  C3                ret
 0000664C  833E300103        cmp word [0x130],byte +0x3
 00006651  7505              jnz video_06658   ; ->0x6658
@@ -920,13 +920,13 @@ loc_06637:
 video_06658:
 ;>>>> [video] Backspace/destructive-erase via INT 10h teletype (AH=0Eh): emits BEL-handling then BS(0x08)/space/BS sequence. This first 'mov ah,0x0e' sets the teletype output function before 'int 0x10', writing the just-tested character or erasing it on the terminal's local screen.  // 'mov ah,0xe / int 0x10' then 'mov al,0x20 ... int 0x10 / mov al,0x8 ... int 0x10' (space+backspace erase); follows cmp ah,0x23
 00006658  B40E              mov ah,0xe
-0000665A  CD10              int 0x10
+0000665A  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000665C  B020              mov al,0x20
 0000665E  B40E              mov ah,0xe
-00006660  CD10              int 0x10
+00006660  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006662  B008              mov al,0x8
 00006664  B40E              mov ah,0xe
-00006666  CD10              int 0x10
+00006666  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006668  8B1ECE01          mov bx,[0x1ce]
 0000666C  81FB6701          cmp bx,0x167
 00006670  7605              jna loc_06677   ; ->0x6677
@@ -943,14 +943,14 @@ loc_06684:
 00006687  50                push ax
 00006688  BA1702            mov dx,0x217
 0000668B  B409              mov ah,0x9
-0000668D  CD21              int 0x21
+0000668D  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000668F  58                pop ax
 00006690  C1C004            rol ax,byte 0x4
 00006693  E80C00            call sub_066A2   ; ->0x66A2
 00006696  C1C004            rol ax,byte 0x4
 00006699  E80600            call sub_066A2   ; ->0x66A2
 0000669C  B8200E            mov ax,0xe20
-0000669F  CD10              int 0x10
+0000669F  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000066A1  C3                ret
 sub_066A2:
 000066A2  50                push ax
@@ -961,7 +961,7 @@ sub_066A2:
 loc_066AB:
 000066AB  0430              add al,0x30
 000066AD  B40E              mov ah,0xe
-000066AF  CD10              int 0x10
+000066AF  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000066B1  58                pop ax
 000066B2  C3                ret
 000066B3  1E                push ds
@@ -970,7 +970,7 @@ loc_066AB:
 000066B8  BA0003            mov dx,0x300
 000066BB  B91000            mov cx,0x10
 loc_066BE:
-000066BE  EC                in al,dx
+000066BE  EC                in al,dx   ; Z8530 SCC ch A data
 000066BF  42                inc dx
 000066C0  8AE0              mov ah,al
 000066C2  E8AA05            call sub_06C6F   ; ->0x6C6F
@@ -978,17 +978,17 @@ loc_066BE:
 000066C6  E2F6              loop loc_066BE   ; ->0x66BE
 000066C8  BA2703            mov dx,0x327
 000066CB  B409              mov ah,0x9
-000066CD  CD21              int 0x21
+000066CD  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000066CF  BF7503            mov di,0x375
 000066D2  BA5003            mov dx,0x350
-000066D5  EC                in al,dx
+000066D5  EC                in al,dx   ; secondary device (OKI kbd/system regs)
 000066D6  E80BFC            call sub_062E4   ; ->0x62E4
 000066D9  243F              and al,0x3f
-000066DB  EE                out dx,al
+000066DB  EE                out dx,al   ; secondary device (OKI kbd/system regs)
 000066DC  E805FC            call sub_062E4   ; ->0x62E4
 000066DF  B91000            mov cx,0x10
 loc_066E2:
-000066E2  EC                in al,dx
+000066E2  EC                in al,dx   ; secondary device (OKI kbd/system regs)
 000066E3  42                inc dx
 000066E4  8AE0              mov ah,al
 000066E6  E88605            call sub_06C6F   ; ->0x6C6F
@@ -996,17 +996,17 @@ loc_066E2:
 000066EA  E2F6              loop loc_066E2   ; ->0x66E2
 000066EC  BA6303            mov dx,0x363
 000066EF  B409              mov ah,0x9
-000066F1  CD21              int 0x21
+000066F1  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000066F3  BFBA03            mov di,0x3ba
 000066F6  BA5003            mov dx,0x350
-000066F9  EC                in al,dx
+000066F9  EC                in al,dx   ; secondary device (OKI kbd/system regs)
 000066FA  E8E7FB            call sub_062E4   ; ->0x62E4
 000066FD  0C40              or al,0x40
-000066FF  EE                out dx,al
+000066FF  EE                out dx,al   ; secondary device (OKI kbd/system regs)
 00006700  E8E1FB            call sub_062E4   ; ->0x62E4
 00006703  B91000            mov cx,0x10
 loc_06706:
-00006706  EC                in al,dx
+00006706  EC                in al,dx   ; secondary device (OKI kbd/system regs)
 00006707  42                inc dx
 00006708  8AE0              mov ah,al
 0000670A  E86205            call sub_06C6F   ; ->0x6C6F
@@ -1014,7 +1014,7 @@ loc_06706:
 0000670E  E2F6              loop loc_06706   ; ->0x6706
 00006710  BAA803            mov dx,0x3a8
 00006713  B409              mov ah,0x9
-00006715  CD21              int 0x21
+00006715  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006717  C3                ret
 00006718  BAE901            mov dx,0x1e9
 0000671B  BEB108            mov si,0x8b1
@@ -1031,19 +1031,19 @@ loc_0671E:
 00006734  E84900            call sub_06780   ; ->0x6780
 00006737  BAFB01            mov dx,0x1fb
 0000673A  B409              mov ah,0x9
-0000673C  CD21              int 0x21
+0000673C  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000673E  BEB108            mov si,0x8b1
 00006741  B90800            mov cx,0x8
 loc_06744:
 00006744  B8200E            mov ax,0xe20
-00006747  CD10              int 0x10
+00006747  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006749  B83900            mov ax,0x39
 0000674C  2BC1              sub ax,cx
 0000674E  B40E              mov ah,0xe
-00006750  CD10              int 0x10
+00006750  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006752  BA1502            mov dx,0x215
 00006755  B409              mov ah,0x9
-00006757  CD21              int 0x21
+00006757  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006759  51                push cx
 0000675A  8B4406            mov ax,[si+0x6]
 0000675D  33D2              xor dx,dx
@@ -1061,7 +1061,7 @@ loc_06744:
 00006776  E2CC              loop loc_06744   ; ->0x6744
 00006778  BAF801            mov dx,0x1f8
 0000677B  B409              mov ah,0x9
-0000677D  CD21              int 0x21
+0000677D  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000677F  C3                ret
 sub_06780:
 00006780  8EC0              mov es,ax
@@ -1074,7 +1074,7 @@ loc_06784:
 0000678D  742F              jz loc_067BE   ; ->0x67BE
 0000678F  52                push dx
 00006790  B409              mov ah,0x9
-00006792  CD21              int 0x21
+00006792  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006794  8BF7              mov si,di
 00006796  B90C00            mov cx,0xc
 00006799  1E                push ds
@@ -1083,18 +1083,18 @@ loc_06784:
 loc_0679C:
 0000679C  AC                lodsb
 0000679D  B40E              mov ah,0xe
-0000679F  CD10              int 0x10
+0000679F  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000067A1  E2F9              loop loc_0679C   ; ->0x679C
 000067A3  1F                pop ds
 000067A4  BAF501            mov dx,0x1f5
 000067A7  B409              mov ah,0x9
-000067A9  CD21              int 0x21
+000067A9  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000067AB  268B450C          mov ax,[es:di+0xc]
 000067AF  268B550E          mov dx,[es:di+0xe]
 000067B3  E87504            call sub_06C2B   ; ->0x6C2B
 000067B6  BAF801            mov dx,0x1f8
 000067B9  B409              mov ah,0x9
-000067BB  CD21              int 0x21
+000067BB  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000067BD  5A                pop dx
 loc_067BE:
 000067BE  83C712            add di,byte +0x12
@@ -1104,7 +1104,7 @@ loc_067BE:
 sub_067C8:
 000067C8  BAED03            mov dx,0x3ed
 000067CB  B409              mov ah,0x9
-000067CD  CD21              int 0x21
+000067CD  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 000067CF  BA0504            mov dx,0x405
 000067D2  BBB108            mov bx,0x8b1
 loc_067D5:
@@ -1134,12 +1134,12 @@ loc_067FD:
 0000680A  81FBF108          cmp bx,0x8f1
 0000680E  72C5              jc loc_067D5   ; ->0x67D5
 00006810  B409              mov ah,0x9
-00006812  CD21              int 0x21
+00006812  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006814  E85D38            call sub_0A074   ; ->0xA074
 00006817  C3                ret
 00006818  C3                ret
 00006819  BA4003            mov dx,0x340
-0000681C  EC                in al,dx
+0000681C  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 0000681D  A803              test al,0x3
 0000681F  7406              jz loc_06827   ; ->0x6827
 00006821  BADA05            mov dx,0x5da
@@ -1151,7 +1151,7 @@ loc_06827:
 0000682C  C7066F070000      mov word [0x76f],0x0
 00006832  BA6A05            mov dx,0x56a
 00006835  B409              mov ah,0x9
-00006837  CD21              int 0x21
+00006837  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006839  BBB108            mov bx,0x8b1
 0000683C  33D2              xor dx,dx
 loc_0683E:
@@ -1185,7 +1185,7 @@ loc_06862:
 00006873  FA                cli
 00006874  2206B907          and al,[0x7b9]
 00006878  A2B907            mov [0x7b9],al
-0000687B  EE                out dx,al
+0000687B  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000687C  FB                sti
 0000687D  BA3806            mov dx,0x638
 00006880  803EE00600        cmp byte [0x6e0],0x0
@@ -1195,15 +1195,15 @@ loc_06862:
 00006889  BF7307            mov di,0x773
 0000688C  BA7B06            mov dx,0x67b
 0000688F  B409              mov ah,0x9
-00006891  CD21              int 0x21
+00006891  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 loc_06893:
 00006893  B401              mov ah,0x1
-00006895  CD16              int 0x16
+00006895  CD16              int 0x16   ; INT 16h keyboard
 00006897  74FA              jz loc_06893   ; ->0x6893
 00006899  B400              mov ah,0x0
-0000689B  CD16              int 0x16
+0000689B  CD16              int 0x16   ; INT 16h keyboard
 0000689D  B40E              mov ah,0xe
-0000689F  CD10              int 0x10
+0000689F  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000068A1  3C08              cmp al,0x8
 000068A3  740B              jz loc_068B0   ; ->0x68B0
 000068A5  3C0D              cmp al,0xd
@@ -1237,13 +1237,13 @@ loc_068D5:
 000068DB  893E6F07          mov [0x76f],di
 000068DF  BAA606            mov dx,0x6a6
 000068E2  B409              mov ah,0x9
-000068E4  CD21              int 0x21
+000068E4  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 loc_068E6:
 000068E6  B401              mov ah,0x1
-000068E8  CD16              int 0x16
+000068E8  CD16              int 0x16   ; INT 16h keyboard
 000068EA  74FA              jz loc_068E6   ; ->0x68E6
 000068EC  B400              mov ah,0x0
-000068EE  CD16              int 0x16
+000068EE  CD16              int 0x16   ; INT 16h keyboard
 000068F0  BAC104            mov dx,0x4c1
 000068F3  C6066E0700        mov byte [0x76e],0x0
 000068F8  3C79              cmp al,0x79
@@ -1255,7 +1255,7 @@ loc_06900:
 00006903  A26E07            mov [0x76e],al
 loc_06906:
 00006906  B409              mov ah,0x9
-00006908  CD21              int 0x21
+00006908  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000690A  33FF              xor di,di
 0000690C  BE6307            mov si,0x763
 0000690F  B90E00            mov cx,0xe
@@ -1266,7 +1266,7 @@ loc_06906:
 0000691D  F3A4              rep movsb
 0000691F  BAF705            mov dx,0x5f7
 00006922  B409              mov ah,0x9
-00006924  CD21              int 0x21
+00006924  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006926  33D2              xor dx,dx
 00006928  B004              mov al,0x4
 0000692A  E84502            call sub_06B72   ; ->0x6B72
@@ -1281,7 +1281,7 @@ loc_06906:
 00006941  BAE602            mov dx,0x2e6
 loc_06944:
 00006944  B409              mov ah,0x9
-00006946  CD21              int 0x21
+00006946  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006948  C3                ret
 dos_blk_copy_06949:
 00006949  53                push bx
@@ -1307,7 +1307,7 @@ loc_06963:
 00006973  2226B907          and ah,[0x7b9]
 00006977  0AC4              or al,ah
 00006979  A2B907            mov [0x7b9],al
-0000697C  EE                out dx,al
+0000697C  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000697D  FB                sti
 0000697E  5A                pop dx
 0000697F  03D1              add dx,cx
@@ -1334,7 +1334,7 @@ loc_0699F:
 000069A4  C3                ret
 sub_069A5:
 000069A5  BA4003            mov dx,0x340
-000069A8  EC                in al,dx
+000069A8  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 000069A9  A803              test al,0x3
 000069AB  752E              jnz loc_069DB   ; ->0x69DB
 000069AD  BA4303            mov dx,0x343
@@ -1343,7 +1343,7 @@ sub_069A5:
 000069B3  2206B907          and al,[0x7b9]
 000069B7  0C04              or al,0x4
 000069B9  A2B907            mov [0x7b9],al
-000069BC  EE                out dx,al
+000069BC  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 000069BD  FB                sti
 000069BE  B800C0            mov ax,0xc000
 000069C1  8EC0              mov es,ax
@@ -1388,7 +1388,7 @@ loc_06A06:
 00006A0A  2206B907          and al,[0x7b9]
 00006A0E  0AC4              or al,ah
 00006A10  A2B907            mov [0x7b9],al
-00006A13  EE                out dx,al
+00006A13  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006A14  FB                sti
 00006A15  B90080            mov cx,0x8000
 00006A18  2BCE              sub cx,si
@@ -1418,23 +1418,23 @@ loc_06A22:
 00006A49  84C0              test al,al
 00006A4B  7406              jz loc_06A53   ; ->0x6A53
 00006A4D  B40E              mov ah,0xe
-00006A4F  CD10              int 0x10
+00006A4F  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006A51  EBF5              jmp short 0x6a48
 loc_06A53:
 00006A53  BAE602            mov dx,0x2e6
 00006A56  B409              mov ah,0x9
-00006A58  CD21              int 0x21
+00006A58  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006A5A  803E6E0700        cmp byte [0x76e],0x0
 00006A5F  7528              jnz loc_06A89   ; ->0x6A89
 00006A61  BA1904            mov dx,0x419
 00006A64  B409              mov ah,0x9
-00006A66  CD21              int 0x21
+00006A66  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 loc_06A68:
 00006A68  B401              mov ah,0x1
-00006A6A  CD16              int 0x16
+00006A6A  CD16              int 0x16   ; INT 16h keyboard
 00006A6C  74FA              jz loc_06A68   ; ->0x6A68
 00006A6E  B400              mov ah,0x0
-00006A70  CD16              int 0x16
+00006A70  CD16              int 0x16   ; INT 16h keyboard
 00006A72  3C79              cmp al,0x79
 00006A74  740C              jz loc_06A82   ; ->0x6A82
 00006A76  3C59              cmp al,0x59
@@ -1442,12 +1442,12 @@ loc_06A68:
 00006A7A  BAC104            mov dx,0x4c1
 loc_06A7D:
 00006A7D  B409              mov ah,0x9
-00006A7F  CD21              int 0x21
+00006A7F  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006A81  C3                ret
 loc_06A82:
 00006A82  BAC604            mov dx,0x4c6
 00006A85  B409              mov ah,0x9
-00006A87  CD21              int 0x21
+00006A87  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 loc_06A89:
 00006A89  C606E00600        mov byte [0x6e0],0x0
 00006A8E  E80701            call sub_06B98   ; ->0x6B98
@@ -1457,7 +1457,7 @@ loc_06A99:
 00006A99  75FE              jnz loc_06A99   ; ->0x6A99
 00006A9B  BA5104            mov dx,0x451
 00006A9E  B409              mov ah,0x9
-00006AA0  CD21              int 0x21
+00006AA0  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006AA2  BBB108            mov bx,0x8b1
 00006AA5  33D2              xor dx,dx
 loc_06AA7:
@@ -1506,18 +1506,18 @@ loc_06ACB:
 00006B09  7216              jc loc_06B21   ; ->0x6B21
 00006B0B  BA6B04            mov dx,0x46b
 00006B0E  B409              mov ah,0x9
-00006B10  CD21              int 0x21
+00006B10  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006B12  A16107            mov ax,[0x761]
 00006B15  E8F600            call dos_hexprint_print_06C0E   ; ->0x6C0E
 ;>>>> [INT21-DOS] Loads DX=0x4CC, the offset of a '$'-terminated status/result message, for the immediately following INT 21h AH=09h print on the self-test success path (after printing the value [0x761] via hex helper 0x6C0E at 0x6B15); the routine then halts in an infinite 'jmp short 0x6b1f' loop, the MFGTEST pass/report endpoint.  // mov dx,0x4cc; mov ah,0x9; int 0x21; then EBFE (jmp $) self-loop; preceded by call 0x6c0e hex-print
 00006B18  BACC04            mov dx,0x4cc
 00006B1B  B409              mov ah,0x9
-00006B1D  CD21              int 0x21
+00006B1D  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006B1F  EBFE              jmp short 0x6b1f
 loc_06B21:
 00006B21  BAA204            mov dx,0x4a2
 00006B24  B409              mov ah,0x9
-00006B26  CD21              int 0x21
+00006B26  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00006B28  EBFE              jmp short 0x6b28
 sub_06B2A:
 00006B2A  1E                push ds
@@ -1539,7 +1539,7 @@ loc_06B40:
 00006B46  2226B907          and ah,[0x7b9]
 00006B4A  0AC4              or al,ah
 00006B4C  A2B907            mov [0x7b9],al
-00006B4F  EE                out dx,al
+00006B4F  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006B50  FB                sti
 00006B51  5A                pop dx
 ;>>>> [video/M76V020] Begins computing the VRAM segment for a display fill: copies DX (paragraph base, just popped) into AX, masks to within a 64K window (and ax,0xfff) and adds 0xC000 (the VRAM segment, GCS2 region ~0xC0000), then mov ds,ax so DS points at video RAM before the block operation via call 0xa564. The OUT to 0x343 just above set the M76V020 mode/control byte (shadow [0x7b9]).  // 'mov ax,dx' / 'and ax,0xfff' / 'add ax,0xc000' / 'mov ds,ax'; 0xc000 = VRAM segment, port 0x343 video control above
@@ -1566,7 +1566,7 @@ sub_06B72:
 00006B79  2226B907          and ah,[0x7b9]
 00006B7D  0AC4              or al,ah
 00006B7F  A2B907            mov [0x7b9],al
-00006B82  EE                out dx,al
+00006B82  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006B83  FB                sti
 00006B84  5A                pop dx
 00006B85  BB00C0            mov bx,0xc000
@@ -1587,7 +1587,7 @@ sub_06B98:
 00006B9A  A3A307            mov [0x7a3],ax
 00006B9D  BA9307            mov dx,0x793
 00006BA0  B8003D            mov ax,0x3d00
-00006BA3  CD21              int 0x21
+00006BA3  CD21              int 0x21   ; INT 21h AH=0x3d: open file
 00006BA5  7301              jnc loc_06BA8   ; ->0x6BA8
 00006BA7  C3                ret
 loc_06BA8:
@@ -1597,14 +1597,14 @@ loc_06BA8:
 ;>>>> [INT21-DOS] Moves the just-opened file handle (returned in AX by INT 21h AH=3Dh open at 0x6ba0, also saved to [0x79f]) into BX in preparation for the INT 21h AX=4202h (LSEEK from end, CX:DX=0) on the next lines to determine the file's size.  // mov [0x79f],ax / mov bx,ax / mov ax,0x4202 / int 0x21
 00006BAF  8BD8              mov bx,ax
 00006BB1  B80242            mov ax,0x4202
-00006BB4  CD21              int 0x21
+00006BB4  CD21              int 0x21   ; INT 21h AH=0x42: lseek
 00006BB6  7234              jc loc_06BEC   ; ->0x6BEC
 00006BB8  50                push ax
 00006BB9  33D2              xor dx,dx
 00006BBB  8BCA              mov cx,dx
 00006BBD  8B1E9F07          mov bx,[0x79f]
 00006BC1  B80042            mov ax,0x4200
-00006BC4  CD21              int 0x21
+00006BC4  CD21              int 0x21   ; INT 21h AH=0x42: lseek
 00006BC6  5B                pop bx
 00006BC7  7223              jc loc_06BEC   ; ->0x6BEC
 00006BC9  53                push bx
@@ -1612,7 +1612,7 @@ loc_06BA8:
 00006BCE  83C30F            add bx,byte +0xf
 00006BD1  C1EB04            shr bx,byte 0x4
 00006BD4  B448              mov ah,0x48
-00006BD6  CD21              int 0x21
+00006BD6  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 00006BD8  7212              jc loc_06BEC   ; ->0x6BEC
 00006BDA  A3A307            mov [0x7a3],ax
 00006BDD  8B1E9F07          mov bx,[0x79f]
@@ -1621,12 +1621,12 @@ loc_06BA8:
 00006BE3  8ED8              mov ds,ax
 00006BE5  33D2              xor dx,dx
 00006BE7  B43F              mov ah,0x3f
-00006BE9  CD21              int 0x21
+00006BE9  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 00006BEB  1F                pop ds
 loc_06BEC:
 00006BEC  8B1E9F07          mov bx,[0x79f]
 00006BF0  B43E              mov ah,0x3e
-00006BF2  CD21              int 0x21
+00006BF2  CD21              int 0x21   ; INT 21h AH=0x3e: close handle
 00006BF4  C3                ret
 sub_06BF5:
 00006BF5  A1A307            mov ax,[0x7a3]
@@ -1638,7 +1638,7 @@ sub_06BF5:
 00006C03  8BCB              mov cx,bx
 00006C05  8B16A107          mov dx,[0x7a1]
 00006C09  B406              mov ah,0x6
-00006C0B  CD40              int 0x40
+00006C0B  CD40              int 0x40   ; INT 40h AH=0x06: process buffered item
 loc_06C0D:
 00006C0D  C3                ret
 dos_hexprint_print_06C0E:
@@ -1656,7 +1656,7 @@ sub_06C17:
 loc_06C23:
 00006C23  0430              add al,0x30
 00006C25  B40E              mov ah,0xe
-00006C27  CD10              int 0x10
+00006C27  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006C29  58                pop ax
 00006C2A  C3                ret
 sub_06C2B:
@@ -1690,7 +1690,7 @@ sub_06C53:
 loc_06C60:
 00006C60  0430              add al,0x30
 00006C62  B40E              mov ah,0xe
-00006C64  CD10              int 0x10
+00006C64  CD10              int 0x10   ; INT 10h video (teletype/mode)
 loc_06C66:
 00006C66  8BC2              mov ax,dx
 00006C68  C3                ret
@@ -1714,7 +1714,7 @@ loc_06C7E:
 00006C83  33F6              xor si,si
 loc_06C85:
 00006C85  B404              mov ah,0x4
-00006C87  CD40              int 0x40
+00006C87  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 ;>>>> [INT40-comm] After INT 40h AH=4 (kernel get-pointer service), tests whether the returned far pointer ES:BX is null by OR-ing the segment (AX=ES) with offset BX; if zero (jnz fails) the routine returns without processing.  // 0x6C87 int 0x40 (AH=4) then 0x6C89 8CC0 'mov ax,es' / or ax,bx / jnz 0x6c90 / ret
 00006C89  8CC0              mov ax,es
 00006C8B  0BC3              or ax,bx
@@ -1792,12 +1792,12 @@ loc_06CF5:
 00006D03  1F                pop ds
 00006D04  5E                pop si
 00006D05  B400              mov ah,0x0
-00006D07  CD40              int 0x40
+00006D07  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 00006D09  B401              mov ah,0x1
-00006D0B  CD16              int 0x16
+00006D0B  CD16              int 0x16   ; INT 16h keyboard
 00006D0D  7418              jz loc_06D27   ; ->0x6D27
 00006D0F  B400              mov ah,0x0
-00006D11  CD16              int 0x16
+00006D11  CD16              int 0x16   ; INT 16h keyboard
 00006D13  3C1B              cmp al,0x1b
 00006D15  7413              jz loc_06D2A   ; ->0x6D2A
 00006D17  3C2B              cmp al,0x2b
@@ -1999,10 +1999,10 @@ loc_06DDC:
 00006E00  7305              jnc loc_06E07   ; ->0x6E07
 00006E02  2EFFA72C0D        jmp [cs:bx+0xd2c]
 loc_06E07:
-00006E07  CD4F              int 0x4f
+00006E07  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 00006E09  8AC2              mov al,dl
 00006E0B  B40E              mov ah,0xe
-00006E0D  CD10              int 0x10
+00006E0D  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006E0F  5B                pop bx
 00006E10  58                pop ax
 00006E11  CF                iret
@@ -2013,7 +2013,7 @@ loc_06E07:
 ;>>>> [INT21-DOS] JZ tests the byte just fetched by LODSB against '$' (0x24): this is the terminator check of a $-terminated string print loop that emits each character via INT 10h AH=0Eh teletype (the AH=9-equivalent string printer). On match it branches to the exit (pop si/bx/ax; iret).  // preceding 'lodsb' / 'cmp al,0x24'; jz to 0x6e20 which pops and irets; the fall-through does 'mov ah,0x0e'/'int 0x10'
 00006E18  7406              jz dos_print_06E20   ; ->0x6E20
 00006E1A  B40E              mov ah,0xe
-00006E1C  CD10              int 0x10
+00006E1C  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00006E1E  EBF5              jmp short 0x6e15
 dos_print_06E20:
 00006E20  5E                pop si
@@ -2155,7 +2155,7 @@ loc_06EA7:
 loc_06F19:
 00006F19  BA4303            mov dx,0x343
 00006F1C  8BC5              mov ax,bp
-00006F1E  EE                out dx,al
+00006F1E  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006F1F  83F540            xor bp,byte +0x40
 00006F22  BA0000            mov dx,0x0
 loc_06F25:
@@ -2169,7 +2169,7 @@ loc_06F25:
 00006F38  72EB              jc loc_06F25   ; ->0x6F25
 00006F3A  BA4303            mov dx,0x343
 00006F3D  8BC5              mov ax,bp
-00006F3F  EE                out dx,al
+00006F3F  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006F40  83F540            xor bp,byte +0x40
 00006F43  BA0000            mov dx,0x0
 loc_06F46:
@@ -2193,7 +2193,7 @@ loc_06F46:
 00006F71  AA                stosb
 00006F72  BA4303            mov dx,0x343
 00006F75  8BC5              mov ax,bp
-00006F77  EE                out dx,al
+00006F77  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006F78  83F540            xor bp,byte +0x40
 ;>>>> [selftest] Sets DX=0 then ES=0 to begin a memory-presence/sizing scan at segment 0: it writes a test byte (stosb) and runs 'repe scasb' over 0xFFFF bytes looking for the written pattern, walking 0x1000-paragraph segments. Part of the RAM/flash sizing self-test (the preceding code wrote the complemented pattern and toggled video control bit at port 0x343).  // 'mov dx,0x0' then 'mov es,dx' / 'xor di,di' / 'stosb' / 'mov cx,0xffff' / 'repe scasb'
 00006F7B  BA0000            mov dx,0x0
@@ -2238,33 +2238,33 @@ loc_06FCA:
 00006FCC  731A              jnc loc_06FE8   ; ->0x6FE8
 00006FCE  BA4303            mov dx,0x343
 00006FD1  B044              mov al,0x44
-00006FD3  EE                out dx,al
+00006FD3  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006FD4  B8B80B            mov ax,0xbb8
 00006FD7  BA32FF            mov dx,0xff32
-00006FDA  EE                out dx,al
+00006FDA  EE                out dx,al   ; PCB Interrupt Control Unit
 00006FDB  BA34FF            mov dx,0xff34
-00006FDE  EE                out dx,al
+00006FDE  EE                out dx,al   ; PCB Interrupt Control Unit
 00006FDF  B803C0            mov ax,0xc003
 00006FE2  BA36FF            mov dx,0xff36
-00006FE5  EE                out dx,al
+00006FE5  EE                out dx,al   ; PCB Interrupt Control Unit
 00006FE6  EB0D              jmp short 0x6ff5
 loc_06FE8:
 00006FE8  BA4303            mov dx,0x343
 00006FEB  B044              mov al,0x44
-00006FED  EE                out dx,al
+00006FED  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00006FEE  B80040            mov ax,0x4000
 00006FF1  BA36FF            mov dx,0xff36
-00006FF4  EE                out dx,al
+00006FF4  EE                out dx,al   ; PCB Interrupt Control Unit
 loc_06FF5:
 00006FF5  E2FE              loop loc_06FF5   ; ->0x6FF5
 00006FF7  85DB              test bx,bx
 00006FF9  75CF              jnz loc_06FCA   ; ->0x6FCA
 00006FFB  B80040            mov ax,0x4000
 00006FFE  BA36FF            mov dx,0xff36
-00007001  EE                out dx,al
+00007001  EE                out dx,al   ; PCB Interrupt Control Unit
 00007002  BA4303            mov dx,0x343
 00007005  B044              mov al,0x44
-00007007  EE                out dx,al
+00007007  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00007008  268A45FF          mov al,[es:di-0x1]
 0000700C  EBFA              jmp short 0x7008
 0000700E  85DB              test bx,bx
@@ -2297,7 +2297,7 @@ loc_07041:
 00007048  B044              mov al,0x44
 0000704A  A2B907            mov [0x7b9],al
 0000704D  BA4303            mov dx,0x343
-00007050  EE                out dx,al
+00007050  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 00007051  33FF              xor di,di
 00007053  8EC7              mov es,di
 00007055  B90001            mov cx,0x100
@@ -2354,7 +2354,7 @@ loc_07058:
 000070CA  E88030            call sub_0A14D   ; ->0xA14D
 000070CD  E81A01            call sub_071EA   ; ->0x71EA
 000070D0  7302              jnc loc_070D4   ; ->0x70D4
-000070D2  CD4F              int 0x4f
+000070D2  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_070D4:
 000070D4  BBFFFF            mov bx,0xffff
 000070D7  E8BF02            call sub_07399   ; ->0x7399
@@ -2372,7 +2372,7 @@ loc_070F9:
 000070F9  B402              mov ah,0x2
 000070FB  B9E803            mov cx,0x3e8
 000070FE  BA7D00            mov dx,0x7d
-00007101  CD40              int 0x40
+00007101  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 00007103  1E                push ds
 00007104  BADB07            mov dx,0x7db
 00007107  E89335            call sub_0A69D   ; ->0xA69D
@@ -2382,14 +2382,14 @@ loc_070F9:
 00007113  06                push es
 00007114  1F                pop ds
 00007115  B409              mov ah,0x9
-00007117  CD21              int 0x21
+00007117  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 dos_print_status_07119:
 ;>>>> [INT21-DOS] Begins printing a fixed status/banner message via INT 21h AH=09h: 'push cs / mov dx,0x14f8 / pop ds' sets DS:DX to the CS-relative $-terminated string at 0x14F8, then AH=9/INT 21h prints it (reached when the prior optional message at [0x986] was not shown).  // 'push cs / mov dx,0x14f8 / pop ds / mov ah,0x9 / int 0x21'; jump target of 'jnz 0x7119'
 00007119  0E                push cs
 0000711A  BAF814            mov dx,0x14f8
 0000711D  1F                pop ds
 0000711E  B409              mov ah,0x9
-00007120  CD21              int 0x21
+00007120  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00007122  1F                pop ds
 00007123  B94002            mov cx,0x240
 00007126  E82500            call selftest_fread_status_0714E   ; ->0x714E
@@ -2414,19 +2414,19 @@ selftest_fread_status_0714E:
 00007155  C606F00700        mov byte [0x7f0],0x0
 0000715A  8AC7              mov al,bh
 0000715C  BA4203            mov dx,0x342
-0000715F  EE                out dx,al
+0000715F  EE                out dx,al   ; M76V020 video: control/attr
 00007160  E87F03            call 0x74e2
 00007163  BA4003            mov dx,0x340
-00007166  EC                in al,dx
+00007166  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 loc_07167:
 00007167  8AE0              mov ah,al
 00007169  32FD              xor bh,ch
 0000716B  8AC7              mov al,bh
 0000716D  BA4203            mov dx,0x342
-00007170  EE                out dx,al
+00007170  EE                out dx,al   ; M76V020 video: control/attr
 00007171  E86E03            call 0x74e2
 00007174  BA4003            mov dx,0x340
-00007177  EC                in al,dx
+00007177  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00007178  32E0              xor ah,al
 0000717A  22DC              and bl,ah
 0000717C  0826F007          or [0x7f0],ah
@@ -2482,11 +2482,11 @@ loc_07195:
 000071DE  BB3E00            mov bx,0x3e
 000071E1  22DC              and bl,ah
 000071E3  2EFFA79B11        jmp [cs:bx+0x119b]
-000071E8  CD4F              int 0x4f
+000071E8  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 sub_071EA:
 000071EA  BAC807            mov dx,0x7c8
 000071ED  B8003D            mov ax,0x3d00
-000071F0  CD21              int 0x21
+000071F0  CD21              int 0x21   ; INT 21h AH=0x3d: open file
 000071F2  7301              jnc loc_071F5   ; ->0x71F5
 loc_071F4:
 000071F4  C3                ret
@@ -2496,14 +2496,14 @@ loc_071F5:
 000071FA  8BCA              mov cx,dx
 000071FC  8BD8              mov bx,ax
 000071FE  B80242            mov ax,0x4202
-00007201  CD21              int 0x21
+00007201  CD21              int 0x21   ; INT 21h AH=0x42: lseek
 00007203  72EF              jc loc_071F4   ; ->0x71F4
 00007205  50                push ax
 00007206  33D2              xor dx,dx
 00007208  8BCA              mov cx,dx
 0000720A  8B1ED307          mov bx,[0x7d3]
 0000720E  B80042            mov ax,0x4200
-00007211  CD21              int 0x21
+00007211  CD21              int 0x21   ; INT 21h AH=0x42: lseek
 00007213  5B                pop bx
 00007214  72DE              jc loc_071F4   ; ->0x71F4
 00007216  53                push bx
@@ -2511,7 +2511,7 @@ loc_071F5:
 0000721B  83C30F            add bx,byte +0xf
 0000721E  C1EB04            shr bx,byte 0x4
 00007221  B448              mov ah,0x48
-00007223  CD21              int 0x21
+00007223  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 00007225  72CD              jc loc_071F4   ; ->0x71F4
 00007227  A3D507            mov [0x7d5],ax
 0000722A  8B1ED307          mov bx,[0x7d3]
@@ -2520,7 +2520,7 @@ loc_071F5:
 00007230  8ED8              mov ds,ax
 00007232  33D2              xor dx,dx
 00007234  B43F              mov ah,0x3f
-00007236  CD21              int 0x21
+00007236  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 00007238  1F                pop ds
 00007239  72B9              jc loc_071F4   ; ->0x71F4
 0000723B  8B1ED307          mov bx,[0x7d3]
@@ -2530,7 +2530,7 @@ loc_071F5:
 00007247  A3D907            mov [0x7d9],ax
 loc_0724A:
 0000724A  B43E              mov ah,0x3e
-0000724C  CD21              int 0x21
+0000724C  CD21              int 0x21   ; INT 21h AH=0x3e: close handle
 0000724E  F8                clc
 0000724F  C3                ret
 sub_07250:
@@ -2624,7 +2624,7 @@ loc_072E4:
 00007308  8BCB              mov cx,bx
 0000730A  8B16D707          mov dx,[0x7d7]
 0000730E  B406              mov ah,0x6
-00007310  CD40              int 0x40
+00007310  CD40              int 0x40   ; INT 40h AH=0x06: process buffered item
 00007312  C3                ret
 sub_07313:
 00007313  1E                push ds
@@ -2758,15 +2758,15 @@ loc_0742B:
 00007430  8B1E7809          mov bx,[0x978]
 00007434  B400              mov ah,0x0
 00007436  8A879900          mov al,[bx+0x99]
-0000743A  CD10              int 0x10
+0000743A  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000743C  B401              mov ah,0x1
 0000743E  8AAF9C00          mov ch,[bx+0x9c]
 00007442  8A8F9D00          mov cl,[bx+0x9d]
-00007446  CD10              int 0x10
+00007446  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00007448  B402              mov ah,0x2
 0000744A  8AB79E00          mov dh,[bx+0x9e]
 0000744E  8A979F00          mov dl,[bx+0x9f]
-00007452  CD10              int 0x10
+00007452  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00007454  C687A80001        mov byte [bx+0xa8],0x1
 00007459  58                pop ax
 loc_0745A:
@@ -2813,7 +2813,7 @@ sub_07476:
 0000749C  FA                cli
 0000749D  2206B907          and al,[0x7b9]
 000074A1  A2B907            mov [0x7b9],al
-000074A4  EE                out dx,al
+000074A4  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 000074A5  FB                sti
 000074A6  1F                pop ds
 000074A7  5A                pop dx
@@ -2896,7 +2896,7 @@ comm_blk_fhandle_07572:
 loc_07578:
 00007578  50                push ax
 00007579  B400              mov ah,0x0
-0000757B  CD40              int 0x40
+0000757B  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 0000757D  58                pop ax
 loc_0757E:
 0000757E  8B1E1409          mov bx,[0x914]
@@ -3189,7 +3189,7 @@ comm_fhandle_0783F:
 0000784E  7406              jz loc_07856   ; ->0x7856
 00007850  B402              mov ah,0x2
 00007852  33D2              xor dx,dx
-00007854  CD40              int 0x40
+00007854  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 loc_07856:
 00007856  C3                ret
 comm_fhandle_07857:
@@ -3197,7 +3197,7 @@ comm_fhandle_07857:
 ;>>>> [INT40-comm] Loads CX=0x3E8 (1000) as a count/timeout argument for the immediately following INT 40h call (AH=2 set at 0x7857, DX=0x7D subfunction); invokes a kernel comm/system service in the alternate branch of the input-queue handler (taken when head!=tail comparison at 0x783F-0x7843 differs), companion to the AH=2/DX=0 INT 40h at 0x7850.  // B9E803 mov cx,0x3e8 between 'mov ah,0x2' and 'mov dx,0x7d / int 0x40 / ret'
 00007859  B9E803            mov cx,0x3e8
 0000785C  BA7D00            mov dx,0x7d
-0000785F  CD40              int 0x40
+0000785F  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 00007861  C3                ret
 sub_07862:
 00007862  A804              test al,0x4
@@ -3294,7 +3294,7 @@ loc_078FE:
 0000791A  7406              jz loc_07922   ; ->0x7922
 0000791C  B402              mov ah,0x2
 0000791E  33D2              xor dx,dx
-00007920  CD40              int 0x40
+00007920  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 loc_07922:
 00007922  F9                stc
 00007923  C3                ret
@@ -3302,7 +3302,7 @@ loc_07924:
 00007924  B402              mov ah,0x2
 00007926  B9E803            mov cx,0x3e8
 00007929  BA7D00            mov dx,0x7d
-0000792C  CD40              int 0x40
+0000792C  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 0000792E  33C0              xor ax,ax
 00007930  A3FC07            mov [0x7fc],ax
 00007933  F9                stc
@@ -3417,7 +3417,7 @@ loc_079E8:
 loc_07A0B:
 00007A0B  50                push ax
 00007A0C  32E4              xor ah,ah
-00007A0E  CD16              int 0x16
+00007A0E  CD16              int 0x16   ; INT 16h keyboard
 00007A10  84C0              test al,al
 
 ; ---- 0x07a12-0x07c72  character-generator font / bitmap data  [H08/H21] ----
@@ -3674,7 +3674,7 @@ loc_09A31:
 00009A31  E85301            call sub_09B87   ; ->0x9B87
 00009A34  803E720800        cmp byte [0x872],0x0
 00009A39  7402              jz loc_09A3D   ; ->0x9A3D
-00009A3B  CD4F              int 0x4f
+00009A3B  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_09A3D:
 00009A3D  8E060C08          mov es,[0x80c]
 00009A41  33FF              xor di,di
@@ -3792,14 +3792,14 @@ loc_09B0E:
 00009B24  CB                retf
 sub_09B25:
 00009B25  B8003D            mov ax,0x3d00
-00009B28  CD21              int 0x21
+00009B28  CD21              int 0x21   ; INT 21h AH=0x3d: open file
 00009B2A  C3                ret
 sub_09B2B:
 00009B2B  8BD1              mov dx,cx
 00009B2D  33C9              xor cx,cx
 00009B2F  8B1E0808          mov bx,[0x808]
 00009B33  B80042            mov ax,0x4200
-00009B36  CD21              int 0x21
+00009B36  CD21              int 0x21   ; INT 21h AH=0x42: lseek
 00009B38  C3                ret
 sub_09B39:
 00009B39  8B1E0808          mov bx,[0x808]
@@ -3814,14 +3814,14 @@ loc_09B41:
 00009B46  8BD7              mov dx,di
 00009B48  B90080            mov cx,0x8000
 00009B4B  B8003F            mov ax,0x3f00
-00009B4E  CD21              int 0x21
+00009B4E  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 00009B50  7233              jc loc_09B85   ; ->0x9B85
 00009B52  8CD8              mov ax,ds
 00009B54  050008            add ax,0x800
 00009B57  8ED8              mov ds,ax
 00009B59  B90080            mov cx,0x8000
 00009B5C  B8003F            mov ax,0x3f00
-00009B5F  CD21              int 0x21
+00009B5F  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 00009B61  7222              jc loc_09B85   ; ->0x9B85
 00009B63  8CD8              mov ax,ds
 00009B65  050008            add ax,0x800
@@ -3839,7 +3839,7 @@ sub_09B70:
 00009B78  1F                pop ds
 00009B79  8BD7              mov dx,di
 00009B7B  B8003F            mov ax,0x3f00
-00009B7E  CD21              int 0x21
+00009B7E  CD21              int 0x21   ; INT 21h AH=0x3f: read file
 00009B80  7203              jc loc_09B85   ; ->0x9B85
 00009B82  1F                pop ds
 loc_09B83:
@@ -3851,17 +3851,17 @@ loc_09B85:
 sub_09B87:
 00009B87  B43E              mov ah,0x3e
 00009B89  8B1E0808          mov bx,[0x808]
-00009B8D  CD21              int 0x21
+00009B8D  CD21              int 0x21   ; INT 21h AH=0x3e: close handle
 00009B8F  C3                ret
 sub_09B90:
 00009B90  8BD8              mov bx,ax
 00009B92  B80048            mov ax,0x4800
-00009B95  CD21              int 0x21
+00009B95  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 00009B97  C3                ret
 sub_09B98:
 00009B98  BBFFFF            mov bx,0xffff
 00009B9B  B80048            mov ax,0x4800
-00009B9E  CD21              int 0x21
+00009B9E  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 00009BA0  8BC3              mov ax,bx
 00009BA2  C3                ret
 00009BA3  1E                push ds
@@ -4207,10 +4207,10 @@ loc_09EA1:
 00009EA2  40                inc ax
 00009EA3  8EC0              mov es,ax
 00009EA5  B449              mov ah,0x49
-00009EA7  CD21              int 0x21
+00009EA7  CD21              int 0x21   ; INT 21h AH=0x49: free memory
 00009EA9  5B                pop bx
 00009EAA  73D8              jnc sub_09E84   ; ->0x9E84
-00009EAC  CD4F              int 0x4f
+00009EAC  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 sub_09EAE:
 00009EAE  56                push si
 00009EAF  52                push dx
@@ -4241,12 +4241,12 @@ loc_09EDB:
 00009EDE  E82DCD            call dos_hexprint_print_06C0E   ; ->0x6C0E
 00009EE1  BA7808            mov dx,0x878
 00009EE4  B409              mov ah,0x9
-00009EE6  CD21              int 0x21
+00009EE6  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00009EE8  268B4706          mov ax,[es:bx+0x6]
 00009EEC  E81FCD            call dos_hexprint_print_06C0E   ; ->0x6C0E
 00009EEF  BA7B08            mov dx,0x87b
 00009EF2  B409              mov ah,0x9
-00009EF4  CD21              int 0x21
+00009EF4  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00009EF6  268A470A          mov al,[es:bx+0xa]
 00009EFA  3C00              cmp al,0x0
 00009EFC  7418              jz loc_09F16   ; ->0x9F16
@@ -4258,17 +4258,17 @@ loc_09EDB:
 loc_09F0D:
 00009F0D  AC                lodsb
 00009F0E  B40E              mov ah,0xe
-00009F10  CD10              int 0x10
+00009F10  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00009F12  E2F9              loop loc_09F0D   ; ->0x9F0D
 00009F14  EB07              jmp short 0x9f1d
 loc_09F16:
 00009F16  BA8008            mov dx,0x880
 00009F19  B409              mov ah,0x9
-00009F1B  CD21              int 0x21
+00009F1B  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 loc_09F1D:
 00009F1D  BA8808            mov dx,0x888
 00009F20  B409              mov ah,0x9
-00009F22  CD21              int 0x21
+00009F22  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 00009F24  268B4702          mov ax,[es:bx+0x2]
 00009F28  85C0              test ax,ax
 00009F2A  75AF              jnz loc_09EDB   ; ->0x9EDB
@@ -4329,7 +4329,7 @@ loc_09F75:
 sub_09FA2:
 00009FA2  33D2              xor dx,dx
 00009FA4  B401              mov ah,0x1
-00009FA6  CD17              int 0x17
+00009FA6  CD17              int 0x17   ; INT 17h printer
 00009FA8  C3                ret
 00009FA9  FB                sti
 00009FAA  53                push bx
@@ -4347,27 +4347,27 @@ sub_09FA2:
 00009FBE  8AD8              mov bl,al
 00009FC0  32FF              xor bh,bh
 00009FC2  BA4003            mov dx,0x340
-00009FC5  EC                in al,dx
+00009FC5  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00009FC6  A880              test al,0x80
 00009FC8  7539              jnz loc_0A003   ; ->0xA003
 00009FCA  8AC3              mov al,bl
 00009FCC  BA4203            mov dx,0x342
-00009FCF  EE                out dx,al
+00009FCF  EE                out dx,al   ; M76V020 video: control/attr
 00009FD0  E812D5            call 0x74e5
 00009FD3  BA4103            mov dx,0x341
 00009FD6  B009              mov al,0x9
 00009FD8  FA                cli
 00009FD9  0A069A08          or al,[0x89a]
-00009FDD  EE                out dx,al
+00009FDD  EE                out dx,al   ; M76V020 video: control
 00009FDE  E80DD5            call 0x74ee
 00009FE1  24FE              and al,0xfe
 00009FE3  A29A08            mov [0x89a],al
-00009FE6  EE                out dx,al
+00009FE6  EE                out dx,al   ; M76V020 video: control
 00009FE7  FB                sti
 loc_09FE8:
 00009FE8  32FF              xor bh,bh
 00009FEA  BA4003            mov dx,0x340
-00009FED  EC                in al,dx
+00009FED  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00009FEE  24F8              and al,0xf8
 00009FF0  34C8              xor al,0xc8
 00009FF2  0AF8              or bh,al
@@ -4423,13 +4423,13 @@ loc_0A034:
 0000A047  FA                cli
 0000A048  A09A08            mov al,[0x89a]
 0000A04B  0C0C              or al,0xc
-0000A04D  EE                out dx,al
+0000A04D  EE                out dx,al   ; M76V020 video: control
 0000A04E  A29A08            mov [0x89a],al
 0000A051  FB                sti
 0000A052  8B1E6809          mov bx,[0x968]
 loc_0A056:
 0000A056  B400              mov ah,0x0
-0000A058  CD40              int 0x40
+0000A058  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 0000A05A  A16809            mov ax,[0x968]
 0000A05D  2BC3              sub ax,bx
 0000A05F  3D1900            cmp ax,0x19
@@ -4437,7 +4437,7 @@ loc_0A056:
 0000A064  FA                cli
 0000A065  A09A08            mov al,[0x89a]
 0000A068  24FB              and al,0xfb
-0000A06A  EE                out dx,al
+0000A06A  EE                out dx,al   ; M76V020 video: control
 0000A06B  A29A08            mov [0x89a],al
 0000A06E  FB                sti
 0000A06F  E976FF            jmp loc_09FE8   ; ->0x9FE8
@@ -4459,7 +4459,7 @@ sub_0A074:
 loc_0A093:
 0000A093  BAF108            mov dx,0x8f1
 0000A096  B409              mov ah,0x9
-0000A098  CD21              int 0x21
+0000A098  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000A09A  47                inc di
 0000A09B  E91FCF            jmp loc_06FBD   ; ->0x6FBD
 loc_0A09E:
@@ -4532,13 +4532,13 @@ loc_0A12C:
 loc_0A140:
 0000A140  BAFF08            mov dx,0x8ff
 0000A143  B409              mov ah,0x9
-0000A145  CD21              int 0x21
+0000A145  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000A147  C606A00801        mov byte [0x8a0],0x1
 0000A14C  C3                ret
 sub_0A14D:
 0000A14D  BB0002            mov bx,0x200
 0000A150  B448              mov ah,0x48
-0000A152  CD21              int 0x21
+0000A152  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 0000A154  7207              jc loc_0A15D   ; ->0xA15D
 0000A156  A39C08            mov [0x89c],ax
 0000A159  891E9E08          mov [0x89e],bx
@@ -4764,7 +4764,7 @@ loc_0A2E7:
 loc_0A2F4:
 0000A2F4  AC                lodsb
 0000A2F5  B40E              mov ah,0xe
-0000A2F7  CD10              int 0x10
+0000A2F7  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000A2F9  E2F9              loop loc_0A2F4   ; ->0xA2F4
 0000A2FB  59                pop cx
 0000A2FC  5E                pop si
@@ -4837,7 +4837,7 @@ loc_0A37B:
 0000A381  5B                pop bx
 0000A382  84C0              test al,al
 0000A384  7402              jz loc_0A388   ; ->0xA388
-0000A386  CD4F              int 0x4f
+0000A386  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A388:
 0000A388  81FB4A16          cmp bx,0x164a
 0000A38C  720E              jc loc_0A39C   ; ->0xA39C
@@ -5293,7 +5293,7 @@ loc_0A6F4:
 0000A6FA  81C3B800          add bx,0xb8
 0000A6FE  81FB5E24          cmp bx,0x245e
 0000A702  72F0              jc loc_0A6F4   ; ->0xA6F4
-0000A704  CD4F              int 0x4f
+0000A704  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A706:
 0000A706  8DBFAB00          lea di,[bx+0xab]
 0000A70A  1E                push ds
@@ -5374,7 +5374,7 @@ sub_0A7A6:
 0000A7D8  3B1E1609          cmp bx,[0x916]
 0000A7DC  7405              jz loc_0A7E3   ; ->0xA7E3
 0000A7DE  A11609            mov ax,[0x916]
-0000A7E1  CD4F              int 0x4f
+0000A7E1  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A7E3:
 0000A7E3  8C17              mov [bx],ss
 0000A7E5  896702            mov [bx+0x2],sp
@@ -5419,16 +5419,16 @@ comm_cursor_blk_0A82A:
 0000A84C  51                push cx
 0000A84D  B400              mov ah,0x0
 0000A84F  8A879900          mov al,[bx+0x99]
-0000A853  CD10              int 0x10
+0000A853  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000A855  B438              mov ah,0x38
 0000A857  8A879A00          mov al,[bx+0x9a]
-0000A85B  CD40              int 0x40
+0000A85B  CD40              int 0x40   ; INT 40h AH=0x38: set current-CB field [+0x9A]=AL
 0000A85D  B401              mov ah,0x1
 0000A85F  59                pop cx
-0000A860  CD10              int 0x10
+0000A860  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000A862  B402              mov ah,0x2
 0000A864  5A                pop dx
-0000A865  CD10              int 0x10
+0000A865  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000A867  C687A80001        mov byte [bx+0xa8],0x1
 0000A86C  5B                pop bx
 0000A86D  EB87              jmp short 0xa7f6
@@ -5480,7 +5480,7 @@ loc_0A8B1:
 0000A8D1  8B1E1409          mov bx,[0x914]
 0000A8D5  3B1E1609          cmp bx,[0x916]
 0000A8D9  7402              jz loc_0A8DD   ; ->0xA8DD
-0000A8DB  CD4F              int 0x4f
+0000A8DB  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A8DD:
 0000A8DD  8B7F06            mov di,[bx+0x6]
 0000A8E0  85FF              test di,di
@@ -5495,10 +5495,10 @@ loc_0A8ED:
 0000A8F9  8E4704            mov es,[bx+0x4]
 0000A8FC  8BDA              mov bx,dx
 0000A8FE  B44A              mov ah,0x4a
-0000A900  CD21              int 0x21
+0000A900  CD21              int 0x21   ; INT 21h AH=0x4a: resize memory block
 0000A902  8B1E1409          mov bx,[0x914]
 0000A906  7302              jnc loc_0A90A   ; ->0xA90A
-0000A908  CD4F              int 0x4f
+0000A908  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A90A:
 0000A90A  E9E9FE            jmp loc_0A7F6   ; ->0xA7F6
 0000A90D  32C0              xor al,al
@@ -5507,7 +5507,7 @@ loc_0A90A:
 0000A914  8B1E1409          mov bx,[0x914]
 0000A918  3B1E1609          cmp bx,[0x916]
 0000A91C  7402              jz loc_0A920   ; ->0xA920
-0000A91E  CD4F              int 0x4f
+0000A91E  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0A920:
 0000A920  8B7F06            mov di,[bx+0x6]
 0000A923  85FF              test di,di
@@ -5569,9 +5569,9 @@ sub_0A986:
 0000A9A1  FB                sti
 0000A9A2  BA14FF            mov dx,0xff14
 0000A9A5  FA                cli
-0000A9A6  ED                in ax,dx
+0000A9A6  ED                in ax,dx   ; PCB I/O Port Unit
 0000A9A7  25F7FF            and ax,0xfff7
-0000A9AA  EE                out dx,al
+0000A9AA  EE                out dx,al   ; PCB I/O Port Unit
 0000A9AB  FB                sti
 sub_0A9AC:
 0000A9AC  A0A907            mov al,[0x7a9]
@@ -5580,7 +5580,7 @@ sub_0A9AC:
 0000A9B3  32E4              xor ah,ah
 0000A9B5  A35109            mov [0x951],ax
 0000A9B8  BA64FF            mov dx,0xff64
-0000A9BB  EE                out dx,al
+0000A9BB  EE                out dx,al   ; PCB Timer/Counter Unit
 0000A9BC  A0A907            mov al,[0x7a9]
 0000A9BF  BB2C09            mov bx,0x92c
 0000A9C2  D7                xlatb
@@ -5590,7 +5590,7 @@ sub_0A9AC:
 0000A9CB  8BD8              mov bx,ax
 0000A9CD  8B873209          mov ax,[bx+0x932]
 0000A9D1  BA60FF            mov dx,0xff60
-0000A9D4  EE                out dx,al
+0000A9D4  EE                out dx,al   ; PCB Timer/Counter Unit
 0000A9D5  BB3F00            mov bx,0x3f
 0000A9D8  803EB40700        cmp byte [0x7b4],0x0
 0000A9DD  7502              jnz loc_0A9E1   ; ->0xA9E1
@@ -5598,10 +5598,10 @@ sub_0A9AC:
 loc_0A9E1:
 0000A9E1  BA5EFF            mov dx,0xff5e
 0000A9E4  FA                cli
-0000A9E5  ED                in ax,dx
+0000A9E5  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000A9E6  22C3              and al,bl
 0000A9E8  0AC7              or al,bh
-0000A9EA  EE                out dx,al
+0000A9EA  EE                out dx,al   ; PCB Timer/Counter Unit
 0000A9EB  FB                sti
 0000A9EC  C3                ret
 0000A9ED  FB                sti
@@ -5612,7 +5612,7 @@ loc_0A9E1:
 0000A9F2  BA4000            mov dx,0x40
 0000A9F5  8EDA              mov ds,dx
 0000A9F7  BA66FF            mov dx,0xff66
-0000A9FA  ED                in ax,dx
+0000A9FA  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000A9FB  A96000            test ax,0x60
 0000A9FE  7417              jz loc_0AA17   ; ->0xAA17
 0000AA00  A94000            test ax,0x40
@@ -5624,7 +5624,7 @@ loc_0AA05:
 0000AA0A  BA02FF            mov dx,0xff02
 0000AA0D  B80080            mov ax,0x8000
 0000AA10  FA                cli
-0000AA11  EE                out dx,al
+0000AA11  EE                out dx,al   ; PCB register
 0000AA12  5E                pop si
 0000AA13  1F                pop ds
 0000AA14  5A                pop dx
@@ -5632,13 +5632,13 @@ loc_0AA05:
 0000AA16  CF                iret
 loc_0AA17:
 0000AA17  EBF1              jmp short 0xaa0a
-0000AA19  CD4F              int 0x4f
+0000AA19  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0AA1B:
 0000AA1B  BA68FF            mov dx,0xff68
 0000AA1E  50                push ax
 0000AA1F  259403            and ax,0x394
 0000AA22  0AE0              or ah,al
-0000AA24  EC                in al,dx
+0000AA24  EC                in al,dx   ; PCB Timer/Counter Unit
 0000AA25  22064E09          and al,[0x94e]
 0000AA29  803EA80701        cmp byte [0x7a8],0x1
 0000AA2E  7518              jnz loc_0AA48   ; ->0xAA48
@@ -5691,7 +5691,7 @@ cursor_fread_0AA76:
 0000AA87  7534              jnz loc_0AABD   ; ->0xAABD
 loc_0AA89:
 0000AA89  BA5AFF            mov dx,0xff5a
-0000AA8C  EC                in al,dx
+0000AA8C  EC                in al,dx   ; PCB Timer/Counter Unit
 0000AA8D  8AD0              mov dl,al
 0000AA8F  33C0              xor ax,ax
 0000AA91  F606B20702        test byte [0x7b2],0x2
@@ -5718,7 +5718,7 @@ loc_0AABD:
 0000AAC7  8A07              mov al,[bx]
 0000AAC9  43                inc bx
 0000AACA  BA6AFF            mov dx,0xff6a
-0000AACD  EE                out dx,al
+0000AACD  EE                out dx,al   ; PCB Timer/Counter Unit
 0000AACE  81FB5E28          cmp bx,0x285e
 0000AAD2  7203              jc loc_0AAD7   ; ->0xAAD7
 0000AAD4  BB5E27            mov bx,0x275e
@@ -5774,7 +5774,7 @@ loc_0AB37:
 0000AB37  52                push dx
 0000AB38  50                push ax
 0000AB39  BA5AFF            mov dx,0xff5a
-0000AB3C  EC                in al,dx
+0000AB3C  EC                in al,dx   ; PCB Timer/Counter Unit
 0000AB3D  8AD0              mov dl,al
 0000AB3F  58                pop ax
 0000AB40  F6C210            test dl,0x10
@@ -5863,7 +5863,7 @@ loc_0ABCD:
 0000ABE4  33C0              xor ax,ax
 0000ABE6  0B065109          or ax,[0x951]
 0000ABEA  BA64FF            mov dx,0xff64
-0000ABED  EE                out dx,al
+0000ABED  EE                out dx,al   ; PCB Timer/Counter Unit
 0000ABEE  EBD6              jmp short 0xabc6
 0000ABF0  EBD8              jmp short 0xabca
 0000ABF2  DD4BDD            fisttp qword [bp+di-0x23]
@@ -5985,37 +5985,37 @@ sub_0ACBB:
 loc_0ACCE:
 0000ACCE  FB                sti
 0000ACCF  BA32FF            mov dx,0xff32
-0000ACD2  EE                out dx,al
+0000ACD2  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACD3  BA34FF            mov dx,0xff34
-0000ACD6  EE                out dx,al
+0000ACD6  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACD7  33C0              xor ax,ax
 0000ACD9  BA30FF            mov dx,0xff30
-0000ACDC  EE                out dx,al
+0000ACDC  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACDD  B803C0            mov ax,0xc003
 0000ACE0  BA36FF            mov dx,0xff36
-0000ACE3  EE                out dx,al
+0000ACE3  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACE4  C3                ret
 loc_0ACE5:
 0000ACE5  FF0E6609          dec word [0x966]
 0000ACE9  7525              jnz loc_0AD10   ; ->0xAD10
 0000ACEB  BA32FF            mov dx,0xff32
 0000ACEE  B80100            mov ax,0x1
-0000ACF1  EE                out dx,al
+0000ACF1  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACF2  BA34FF            mov dx,0xff34
 0000ACF5  B8FFFF            mov ax,0xffff
-0000ACF8  EE                out dx,al
+0000ACF8  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACF9  BA30FF            mov dx,0xff30
 0000ACFC  33C0              xor ax,ax
-0000ACFE  EE                out dx,al
+0000ACFE  EE                out dx,al   ; PCB Interrupt Control Unit
 0000ACFF  BA36FF            mov dx,0xff36
 0000AD02  B803C0            mov ax,0xc003
-0000AD05  EE                out dx,al
+0000AD05  EE                out dx,al   ; PCB Interrupt Control Unit
 loc_0AD06:
-0000AD06  ED                in ax,dx
+0000AD06  ED                in ax,dx   ; PCB Interrupt Control Unit
 0000AD07  A90010            test ax,0x1000
 0000AD0A  74FA              jz loc_0AD06   ; ->0xAD06
 0000AD0C  B807D0            mov ax,0xd007
-0000AD0F  EE                out dx,al
+0000AD0F  EE                out dx,al   ; PCB Interrupt Control Unit
 loc_0AD10:
 0000AD10  FB                sti
 0000AD11  C3                ret
@@ -6241,9 +6241,9 @@ loc_0AE1B:
 sub_0AEFC:
 0000AEFC  BA5EFF            mov dx,0xff5e
 0000AEFF  FA                cli
-0000AF00  EC                in al,dx
+0000AF00  EC                in al,dx   ; PCB Timer/Counter Unit
 0000AF01  24FD              and al,0xfd
-0000AF03  EE                out dx,al
+0000AF03  EE                out dx,al   ; PCB Timer/Counter Unit
 0000AF04  FB                sti
 0000AF05  33C0              xor ax,ax
 0000AF07  8EC0              mov es,ax
@@ -6267,22 +6267,22 @@ sub_0AEFC:
 0000AF28  FB                sti
 0000AF29  BA42FF            mov dx,0xff42
 0000AF2C  B88CAE            mov ax,0xae8c
-0000AF2F  EE                out dx,al
+0000AF2F  EE                out dx,al   ; PCB register
 0000AF30  BA46FF            mov dx,0xff46
 0000AF33  B801E0            mov ax,0xe001
-0000AF36  EE                out dx,al
+0000AF36  EE                out dx,al   ; PCB register
 0000AF37  BA12FF            mov dx,0xff12
 0000AF3A  FA                cli
-0000AF3B  ED                in ax,dx
+0000AF3B  ED                in ax,dx   ; PCB I/O Port Unit
 0000AF3C  25F7FF            and ax,0xfff7
-0000AF3F  EE                out dx,al
+0000AF3F  EE                out dx,al   ; PCB I/O Port Unit
 0000AF40  FB                sti
 0000AF41  BA3AFF            mov dx,0xff3a
 0000AF44  33C0              xor ax,ax
-0000AF46  EE                out dx,al
+0000AF46  EE                out dx,al   ; PCB Interrupt Control Unit
 0000AF47  BA3EFF            mov dx,0xff3e
 0000AF4A  B801C0            mov ax,0xc001
-0000AF4D  EE                out dx,al
+0000AF4D  EE                out dx,al   ; PCB Interrupt Control Unit
 0000AF4E  C3                ret
 sub_0AF4F:
 0000AF4F  B005              mov al,0x5
@@ -6343,9 +6343,9 @@ loc_0AFB6:
 0000AFBE  742A              jz loc_0AFEA   ; ->0xAFEA
 0000AFC0  BA5EFF            mov dx,0xff5e
 0000AFC3  FA                cli
-0000AFC4  EC                in al,dx
+0000AFC4  EC                in al,dx   ; PCB Timer/Counter Unit
 0000AFC5  24FD              and al,0xfd
-0000AFC7  EE                out dx,al
+0000AFC7  EE                out dx,al   ; PCB Timer/Counter Unit
 0000AFC8  FB                sti
 ;>>>> [timer] Unconditional JMP to 0xB0CB taken after gating off the baud/tick timer (the just-executed in al,0xff5e / and al,0xfd / out dx,al cleared timer-control bit 1 of PCB timer FF5E under CLI). Transfers to the timer-reload/blink-rate update path once the displayed attribute/refresh state at [0x7f4] was found changed.  // 'jmp 0xb0cb' immediately after OUT to 0xff5e (timer) with and al,0xfd; preceded by cmp [0x7f4] / jz
 0000AFC9  E9FF00            jmp timer_clear_attr_0B0CB   ; ->0xB0CB
@@ -6381,7 +6381,7 @@ loc_0AFEC:
 0000AFFE  83166A0900        adc word [0x96a],byte +0x0
 0000B003  BA02FF            mov dx,0xff02
 0000B006  B80080            mov ax,0x8000
-0000B009  EE                out dx,al
+0000B009  EE                out dx,al   ; PCB register
 0000B00A  8B1E1409          mov bx,[0x914]
 0000B00E  FF4708            inc word [bx+0x8]
 ;>>>> [timer/ICU] Increments a sub-tick counter byte [0x972] inside the periodic timer ISR, which also acks via OUT 0xff02,0x8000, bumps the 32-bit tick at [0x968]/[0x96a] and a cursor counter [bx+8], then decrements countdown [0x96d].  // inc byte [0x972] preceded by 'out 0xff02' EOI and adc word [0x96a]; followed by 'dec byte [0x96d] / jnz'
@@ -6454,9 +6454,9 @@ loc_0B0A9:
 loc_0B0B4:
 0000B0B4  BA5EFF            mov dx,0xff5e
 0000B0B7  FA                cli
-0000B0B8  EC                in al,dx
+0000B0B8  EC                in al,dx   ; PCB Timer/Counter Unit
 0000B0B9  24FD              and al,0xfd
-0000B0BB  EE                out dx,al
+0000B0BB  EE                out dx,al   ; PCB Timer/Counter Unit
 0000B0BC  FB                sti
 0000B0BD  BE5E28            mov si,0x285e
 0000B0C0  BF6D28            mov di,0x286d
@@ -6606,16 +6606,16 @@ timer_fread_clear_0B1D8:
 0000B1DB  BB5AFF            mov bx,0xff5a
 loc_0B1DE:
 0000B1DE  FA                cli
-0000B1DF  EC                in al,dx
+0000B1DF  EC                in al,dx   ; PCB Timer/Counter Unit
 0000B1E0  24FD              and al,0xfd
-0000B1E2  EE                out dx,al
+0000B1E2  EE                out dx,al   ; PCB Timer/Counter Unit
 0000B1E3  0C02              or al,0x2
 0000B1E5  8AE0              mov ah,al
 0000B1E7  87D3              xchg dx,bx
-0000B1E9  EC                in al,dx
+0000B1E9  EC                in al,dx   ; PCB Timer/Counter Unit
 0000B1EA  87D3              xchg dx,bx
 0000B1EC  86C4              xchg al,ah
-0000B1EE  EE                out dx,al
+0000B1EE  EE                out dx,al   ; PCB Timer/Counter Unit
 0000B1EF  FB                sti
 0000B1F0  B001              mov al,0x1
 0000B1F2  22E0              and ah,al
@@ -6643,7 +6643,7 @@ loc_0B1DE:
 0000B213  84E4              test ah,ah
 0000B215  7403              jz loc_0B21A   ; ->0xB21A
 0000B217  1F                pop ds
-0000B218  CD4F              int 0x4f
+0000B218  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0B21A:
 0000B21A  BA4000            mov dx,0x40
 0000B21D  8EDA              mov ds,dx
@@ -6708,7 +6708,7 @@ loc_0B21A:
 0000B29B  FA                cli
 0000B29C  0A06B907          or al,[0x7b9]
 0000B2A0  A2B907            mov [0x7b9],al
-0000B2A3  EE                out dx,al
+0000B2A3  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000B2A4  FB                sti
 0000B2A5  BF00D0            mov di,0xd000
 0000B2A8  8EC7              mov es,di
@@ -6728,15 +6728,15 @@ loc_0B21A:
 0000B2C2  B90001            mov cx,0x100
 0000B2C5  BA0203            mov dx,0x302
 0000B2C8  B410              mov ah,0x10
-0000B2CA  CD40              int 0x40
+0000B2CA  CD40              int 0x40   ; INT 40h AH=0x10: set current-CB field [+0xA0]=CX
 ;>>>> [INT40-comm] After issuing the SCC/host-link command via INT 40h AH=10h (DX=0x302 = Z8530 channel-B control port, CX=0x100), this reloads the current screen/page state word from [0x914] and stores it into [0x978], synchronizing the active-display pointer before re-initializing video (INT 10h mode 7, set-cursor at 0x1800).  // preceded by 'mov dx,0x302 / mov ah,0x10 / int 0x40'; then 'mov ax,[0x914] / mov [0x978],ax' and 'mov ax,0x7 / int 0x10'
 0000B2CC  A11409            mov ax,[0x914]
 0000B2CF  A37809            mov [0x978],ax
 0000B2D2  B80700            mov ax,0x7
-0000B2D5  CD10              int 0x10
+0000B2D5  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000B2D7  B402              mov ah,0x2
 0000B2D9  BA0018            mov dx,0x1800
-0000B2DC  CD10              int 0x10
+0000B2DC  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000B2DE  C3                ret
 sub_0B2DF:
 0000B2DF  BAC109            mov dx,0x9c1
@@ -7205,7 +7205,7 @@ loc_0B63F:
 0000B659  7305              jnc loc_0B660   ; ->0xB660
 0000B65B  2EFFA72A52        jmp [cs:bx+0x522a]
 loc_0B660:
-0000B660  CD4F              int 0x4f
+0000B660  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 0000B662  50                push ax
 0000B663  56                push si
 0000B664  247F              and al,0x7f
@@ -7216,7 +7216,7 @@ loc_0B669:
 0000B66E  83C604            add si,byte +0x4
 0000B671  81FE8A52          cmp si,0x528a
 0000B675  72F2              jc loc_0B669   ; ->0xB669
-0000B677  CD4F              int 0x4f
+0000B677  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0B679:
 0000B679  E97B01            jmp loc_0B7F7   ; ->0xB7F7
 loc_0B67C:
@@ -7330,7 +7330,7 @@ loc_0B75F:
 0000B772  F7D8              neg ax
 0000B774  03C2              add ax,dx
 0000B776  7902              jns loc_0B77A   ; ->0xB77A
-0000B778  CD4F              int 0x4f
+0000B778  CD4F              int 0x4f   ; INT 4Fh: PANIC / internal-error trap (register dump + halt)
 loc_0B77A:
 0000B77A  D1E8              shr ax,1
 0000B77C  050F00            add ax,0xf
@@ -7371,7 +7371,7 @@ loc_0B77A:
 0000B7D3  A0B907            mov al,[0x7b9]
 0000B7D6  24E7              and al,0xe7
 0000B7D8  0AC5              or al,ch
-0000B7DA  EE                out dx,al
+0000B7DA  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000B7DB  A2B907            mov [0x7b9],al
 0000B7DE  FB                sti
 0000B7DF  55                push bp
@@ -7769,9 +7769,9 @@ loc_0BB26:
 0000BB2B  7210              jc loc_0BB3D   ; ->0xBB3D
 0000BB2D  50                push ax
 0000BB2E  B80D0E            mov ax,0xe0d
-0000BB31  CD10              int 0x10
+0000BB31  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000BB33  B80A0E            mov ax,0xe0a
-0000BB36  CD10              int 0x10
+0000BB36  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000BB38  58                pop ax
 0000BB39  EB1E              jmp short 0xbb59
 loc_0BB3B:
@@ -7806,7 +7806,7 @@ loc_0BB66:
 0000BB6D  B402              mov ah,0x2
 0000BB6F  B9E803            mov cx,0x3e8
 0000BB72  BA7D00            mov dx,0x7d
-0000BB75  CD40              int 0x40
+0000BB75  CD40              int 0x40   ; INT 40h AH=0x02: timed wait / schedule
 0000BB77  59                pop cx
 0000BB78  EBDF              jmp short 0xbb59
 0000BB7A  A1B809            mov ax,[0x9b8]
@@ -7886,10 +7886,10 @@ loc_0BBFC:
 loc_0BC12:
 0000BC12  C606860900        mov byte [0x986],0x0
 0000BC17  B400              mov ah,0x0
-0000BC19  CD40              int 0x40
+0000BC19  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 loc_0BC1B:
 0000BC1B  B404              mov ah,0x4
-0000BC1D  CD40              int 0x40
+0000BC1D  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 0000BC1F  8CC0              mov ax,es
 0000BC21  0BC3              or ax,bx
 0000BC23  74ED              jz loc_0BC12   ; ->0xBC12
@@ -7924,7 +7924,7 @@ loc_0BC59:
 0000BC5E  B402              mov ah,0x2
 0000BC60  8B16BA09          mov dx,[0x9ba]
 0000BC64  B618              mov dh,0x18
-0000BC66  CD10              int 0x10
+0000BC66  CD10              int 0x10   ; INT 10h video (teletype/mode)
 ;>>>> [video/M76V020] Restores the control-block pointer BX (saved earlier) after positioning the hardware cursor on the bottom status line via INT 10h AH=2 (DH=0x18 = row 24); the routine then reads the cell offset from [es:bx+0x2], byteswaps it, and renders status fields (via call 0xbcc5) using attributes from [0x7f4]/[0x976]. Part of the status-line/prompt redraw.  // mov ah,2; mov dx,[0x9ba]; mov dh,0x18; int 0x10; then >>>>pop bx; mov ax,[es:bx+0x2]; xchg al,ah
 0000BC68  5B                pop bx
 loc_0BC69:
@@ -7938,10 +7938,10 @@ loc_0BC69:
 0000BC7A  8A267609          mov ah,[0x976]
 0000BC7E  E84400            call video_cursor_fread_0BCC5   ; ->0xBCC5
 0000BC81  B401              mov ah,0x1
-0000BC83  CD16              int 0x16
+0000BC83  CD16              int 0x16   ; INT 16h keyboard
 0000BC85  7427              jz loc_0BCAE   ; ->0xBCAE
 0000BC87  B400              mov ah,0x0
-0000BC89  CD16              int 0x16
+0000BC89  CD16              int 0x16   ; INT 16h keyboard
 0000BC8B  3CE0              cmp al,0xe0
 0000BC8D  7502              jnz loc_0BC91   ; ->0xBC91
 0000BC8F  32C0              xor al,al
@@ -7956,12 +7956,12 @@ loc_0BC91:
 loc_0BCA7:
 0000BCA7  E83FA5            call sub_061E9   ; ->0x61E9
 0000BCAA  B40E              mov ah,0xe
-0000BCAC  CD10              int 0x10
+0000BCAC  CD10              int 0x10   ; INT 10h video (teletype/mode)
 loc_0BCAE:
 0000BCAE  B400              mov ah,0x0
-0000BCB0  CD40              int 0x40
+0000BCB0  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 0000BCB2  B404              mov ah,0x4
-0000BCB4  CD40              int 0x40
+0000BCB4  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 0000BCB6  8CC0              mov ax,es
 0000BCB8  0BC3              or ax,bx
 0000BCBA  75AD              jnz loc_0BC69   ; ->0xBC69
@@ -8009,9 +8009,9 @@ sub_0BCF9:
 0000BD13  FB                sti
 0000BD14  BA1CFF            mov dx,0xff1c
 0000BD17  FA                cli
-0000BD18  ED                in ax,dx
+0000BD18  ED                in ax,dx   ; PCB I/O Port Unit
 0000BD19  25F7FF            and ax,0xfff7
-0000BD1C  EE                out dx,al
+0000BD1C  EE                out dx,al   ; PCB I/O Port Unit
 0000BD1D  FB                sti
 0000BD1E  C3                ret
 0000BD1F  FB                sti
@@ -8098,7 +8098,7 @@ loc_0BDD3:
 0000BDD7  B80080            mov ax,0x8000
 0000BDDA  A2B609            mov [0x9b6],al
 0000BDDD  FA                cli
-0000BDDE  EE                out dx,al
+0000BDDE  EE                out dx,al   ; PCB register
 0000BDDF  07                pop es
 0000BDE0  1F                pop ds
 0000BDE1  5A                pop dx
@@ -8568,7 +8568,7 @@ loc_0DE21:
 0000DE22  C407              les ax,[bx]
 0000DE24  D207              rol byte [bx],cl
 0000DE26  E007              loopne 0xde2f
-0000DE28  EE                out dx,al
+0000DE28  EE                out dx,al   ; PCB register
 0000DE29  07                pop es
 0000DE2A  FC                cld
 0000DE2B  07                pop es
@@ -10054,110 +10054,110 @@ loc_0E84F:
 ; ==== 0x0fe00-0x0fef9  CODE (CF-reached, conf 99) ====
 0000FE00  BAA4FF            mov dx,0xffa4
 0000FE03  B801E0            mov ax,0xe001
-0000FE06  EE                out dx,al
+0000FE06  EE                out dx,al   ; PCB Chip-Select Unit (LCS/UCS START/STOP)
 0000FE07  BAA6FF            mov dx,0xffa6
 0000FE0A  B80E00            mov ax,0xe
-0000FE0D  EE                out dx,al
+0000FE0D  EE                out dx,al   ; PCB Chip-Select Unit (LCS/UCS START/STOP)
 0000FE0E  BAA0FF            mov dx,0xffa0
 0000FE11  B80000            mov ax,0x0
-0000FE14  EE                out dx,al
+0000FE14  EE                out dx,al   ; PCB Chip-Select Unit (LCS/UCS START/STOP)
 0000FE15  BAA2FF            mov dx,0xffa2
 0000FE18  B80A80            mov ax,0x800a
-0000FE1B  EE                out dx,al
+0000FE1B  EE                out dx,al   ; PCB Chip-Select Unit (LCS/UCS START/STOP)
 0000FE1C  BA80FF            mov dx,0xff80
 0000FE1F  B80180            mov ax,0x8001
-0000FE22  EE                out dx,al
+0000FE22  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE23  BA82FF            mov dx,0xff82
 0000FE26  B80AA0            mov ax,0xa00a
-0000FE29  EE                out dx,al
+0000FE29  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE2A  BA84FF            mov dx,0xff84
 0000FE2D  B801A0            mov ax,0xa001
-0000FE30  EE                out dx,al
+0000FE30  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE31  BA86FF            mov dx,0xff86
 0000FE34  B80AC0            mov ax,0xc00a
-0000FE37  EE                out dx,al
+0000FE37  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE38  BA88FF            mov dx,0xff88
 0000FE3B  B802C0            mov ax,0xc002
-0000FE3E  EE                out dx,al
+0000FE3E  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE3F  BA8AFF            mov dx,0xff8a
 0000FE42  B80AD0            mov ax,0xd00a
-0000FE45  EE                out dx,al
+0000FE45  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE46  BA8CFF            mov dx,0xff8c
 0000FE49  B805D0            mov ax,0xd005
-0000FE4C  EE                out dx,al
+0000FE4C  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE4D  BA8EFF            mov dx,0xff8e
 0000FE50  B80AE0            mov ax,0xe00a
-0000FE53  EE                out dx,al
+0000FE53  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE54  BA90FF            mov dx,0xff90
 0000FE57  B84003            mov ax,0x340
-0000FE5A  EE                out dx,al
+0000FE5A  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE5B  BA92FF            mov dx,0xff92
 0000FE5E  B88903            mov ax,0x389
-0000FE61  EE                out dx,al
+0000FE61  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE62  BA94FF            mov dx,0xff94
 0000FE65  B80003            mov ax,0x300
-0000FE68  EE                out dx,al
+0000FE68  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE69  BA96FF            mov dx,0xff96
 0000FE6C  B84903            mov ax,0x349
-0000FE6F  EE                out dx,al
+0000FE6F  EE                out dx,al   ; PCB Chip-Select Unit (GCS START/STOP)
 0000FE70  BAB0FF            mov dx,0xffb0
 0000FE73  B80000            mov ax,0x0
-0000FE76  EE                out dx,al
+0000FE76  EE                out dx,al   ; PCB Refresh/Power
 0000FE77  BAB2FF            mov dx,0xffb2
 0000FE7A  B88C00            mov ax,0x8c
-0000FE7D  EE                out dx,al
+0000FE7D  EE                out dx,al   ; PCB Refresh/Power
 0000FE7E  BAB4FF            mov dx,0xffb4
 0000FE81  B80080            mov ax,0x8000
-0000FE84  EE                out dx,al
+0000FE84  EE                out dx,al   ; PCB Refresh/Power
 0000FE85  BA36FF            mov dx,0xff36
 0000FE88  B80040            mov ax,0x4000
-0000FE8B  EE                out dx,al
+0000FE8B  EE                out dx,al   ; PCB Interrupt Control Unit
 0000FE8C  BA3EFF            mov dx,0xff3e
-0000FE8F  EE                out dx,al
+0000FE8F  EE                out dx,al   ; PCB Interrupt Control Unit
 0000FE90  BA46FF            mov dx,0xff46
-0000FE93  EE                out dx,al
+0000FE93  EE                out dx,al   ; PCB register
 0000FE94  BA64FF            mov dx,0xff64
 0000FE97  B80100            mov ax,0x1
-0000FE9A  EE                out dx,al
+0000FE9A  EE                out dx,al   ; PCB Timer/Counter Unit
 0000FE9B  BA74FF            mov dx,0xff74
-0000FE9E  EE                out dx,al
+0000FE9E  EE                out dx,al   ; PCB register
 0000FE9F  BA58FF            mov dx,0xff58
 0000FEA2  B83500            mov ax,0x35
-0000FEA5  EE                out dx,al
+0000FEA5  EE                out dx,al   ; PCB Timer/Counter Unit
 0000FEA6  BA54FF            mov dx,0xff54
 0000FEA9  B83F00            mov ax,0x3f
-0000FEAC  EE                out dx,al
+0000FEAC  EE                out dx,al   ; PCB Timer/Counter Unit
 0000FEAD  BA5CFF            mov dx,0xff5c
 0000FEB0  B80000            mov ax,0x0
-0000FEB3  EE                out dx,al
+0000FEB3  EE                out dx,al   ; PCB Timer/Counter Unit
 0000FEB4  BA5EFF            mov dx,0xff5e
 0000FEB7  B8C000            mov ax,0xc0
-0000FEBA  EE                out dx,al
+0000FEBA  EE                out dx,al   ; PCB Timer/Counter Unit
 0000FEBB  BA4303            mov dx,0x343
 0000FEBE  32C0              xor al,al
-0000FEC0  EE                out dx,al
+0000FEC0  EE                out dx,al   ; M76V020 video: mode/ctrl + char data
 0000FEC1  B80000            mov ax,0x0
 0000FEC4  8ED0              mov ss,ax
 0000FEC6  BCFEFF            mov sp,0xfffe
 0000FEC9  B80F00            mov ax,0xf
 0000FECC  BA1CFF            mov dx,0xff1c
-0000FECF  EE                out dx,al
+0000FECF  EE                out dx,al   ; PCB I/O Port Unit
 0000FED0  BA1EFF            mov dx,0xff1e
-0000FED3  EE                out dx,al
+0000FED3  EE                out dx,al   ; PCB I/O Port Unit
 0000FED4  BA16FF            mov dx,0xff16
-0000FED7  EE                out dx,al
+0000FED7  EE                out dx,al   ; PCB I/O Port Unit
 0000FED8  BA18FF            mov dx,0xff18
 0000FEDB  B80800            mov ax,0x8
-0000FEDE  EE                out dx,al
+0000FEDE  EE                out dx,al   ; PCB I/O Port Unit
 0000FEDF  BA14FF            mov dx,0xff14
 0000FEE2  B80A00            mov ax,0xa
-0000FEE5  EE                out dx,al
+0000FEE5  EE                out dx,al   ; PCB I/O Port Unit
 0000FEE6  BA1AFF            mov dx,0xff1a
 0000FEE9  B80C00            mov ax,0xc
-0000FEEC  EE                out dx,al
+0000FEEC  EE                out dx,al   ; PCB I/O Port Unit
 0000FEED  BA12FF            mov dx,0xff12
 0000FEF0  B80E00            mov ax,0xe
-0000FEF3  EE                out dx,al
+0000FEF3  EE                out dx,al   ; PCB I/O Port Unit
 0000FEF4  EA000000F6        jmp 0xf600:0x0
 
 ; ---- 0x0fef9-0x0ffd0  zero padding  [H07/H21] ----

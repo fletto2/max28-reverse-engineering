@@ -1,3 +1,15 @@
+; ============================================================================
+; DOWNLOAD.EXE  -  serial file-download / firmware-load utility ("File Transfer v0.3")
+; ----------------------------------------------------------------------------
+; WHAT IT DOES: an XMODEM-style RECEIVER that runs on the terminal. It allocates a
+; ~240 KiB RAM staging buffer (INT 21h AH=48h), then runs a block-protocol receive
+; loop over the serial line via the kernel comm API (INT 40h) - pulling a file from a
+; host PC running an XMODEM SEND - while painting a live "Blocks/Bytes Received"
+; status screen to VRAM. It stages the received image in RAM; committing it (e.g. to
+; the flash filesystem) is the kernel's job - this module issues no flash writes.
+; The ;>>>> lines below are cross-verified per-instruction annotations.
+; ============================================================================
+
 ; DOWNLOAD.EXE - code/data-separated disassembly (MZ load module, 1530 B, header 512 B stripped)
 ; entry @0x0000; 1 relocs. Classified CODE-unless-data-filter-fires
 ; (recursive descent under-covers C-runtime startups). Bytes: 985 code / 256 string / 289 data.
@@ -10,7 +22,7 @@
 ;>>>> [INT 21h AH=9 string output (startup banner)] `mov ah,0x9` selects DOS-style INT 21h print-$-terminated-string. Preceded by push ds / mov ax,0x3b / mov ds,ax (set DS=banner segment) and followed by mov dx,0xd5 / int 0x21 (0x0B), it prints the program startup banner at DS:DX=3B:00D5 via the resident kernel's INT 21h AH=9 service.  // 0x00 push ds; 0x01 mov ax,0x3b; 0x04 mov ds,ax; 0x06 mov ah,0x9; 0x08 mov dx,0xd5; 0x0B int 0x21.
 00000006  B409              mov ah,0x9
 00000008  BAD500            mov dx,0xd5
-0000000B  CD21              int 0x21
+0000000B  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000000D  07                pop es
 ;>>>> [DOS/MZ startup memory sizing (INT 21h AH=4Ah)] `mov bx,sp` begins computing the resident program size in paragraphs: BX=SP, then add 0xf and shr 4 rounds the stack top up to a paragraph, add SS (0x16/0x18) forms the absolute top-of-image paragraph. `sub bx,ax` (with AX=ES=PSP, 0x1a/0x1c) yields the paragraph count passed to INT 21h AH=4Ah (0x1e/0x20) to shrink the block before the AH=48h download-buffer allocation. Standard MZ C-runtime startup.  // 0x0E mov bx,sp; 0x10 add bx,0xf; 0x13 shr bx,4; 0x16 mov ax,ss; 0x18 add bx,ax; 0x1A mov ax,es; 0x1C sub bx,ax; 0x1E mov ah,0x4a; 0x20 int 0x21.
 0000000E  8BDC              mov bx,sp
@@ -24,40 +36,40 @@
 0000001C  2BD8              sub bx,ax
 0000001E  B44A              mov ah,0x4a
 ;>>>> [DOS memory (INT 21h AH=4Ah)] int 0x21 with AH=0x4A (set at 0x1e) = DOS resize memory block. BX = paragraph count computed from SS:SP top-of-stack minus ES (program segment), shrinking the program's allocation to free RAM before the AH=48h buffer allocations.  // 0x16 mov ax,ss / 0x18 add bx,ax / 0x1a mov ax,es / 0x1c sub bx,ax / 0x1e mov ah,0x4a / 0x20 int 0x21
-00000020  CD21              int 0x21
+00000020  CD21              int 0x21   ; INT 21h AH=0x4a: resize memory block
 ;>>>> [video init (INT 10h)] mov ax,0x7 loads AH=0,AL=7 for the immediately following INT 10h (0x25): BIOS set-video-mode, mode 7 (80x25 monochrome text), initializing the display before the download status screen is drawn.  // 0x22 mov ax,0x7 / 0x25 int 0x10 (AH=0 set video mode, AL=7)
 00000022  B80700            mov ax,0x7
-00000025  CD10              int 0x10
+00000025  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000027  B448              mov ah,0x48
 00000029  BB0020            mov bx,0x2000
-0000002C  CD21              int 0x21
+0000002C  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 0000002E  7224              jc loc_00054   ; ->0x54
 00000030  A31C00            mov [0x1c],ax
 00000033  B448              mov ah,0x48
 00000035  BB001C            mov bx,0x1c00
-00000038  CD21              int 0x21
+00000038  CD21              int 0x21   ; INT 21h AH=0x48: alloc memory
 0000003A  7218              jc loc_00054   ; ->0x54
 0000003C  8EC0              mov es,ax
 ;>>>> [download buffer init / INT 40h AH=0x2E host-link setup] mov cx,0x1c00 loads CX=0x1C00 (7168) as the size/length argument for the immediately following INT 40h AH=0x2E kernel call (0x41 mov ah,0x2e; 0x43 int 0x40). ES was just set (0x3C mov es,ax) to the segment returned by the second AH=0x48 allocation (0x1C00 paragraphs). This registers/initializes the allocated receive buffer with the kernel host-link service before entering the main poll loop at 0x45.  // 0x3C mov es,ax; 0x3E mov cx,0x1c00; 0x41 mov ah,0x2e; 0x43 int 0x40; 0x45 call 0x60
 0000003E  B9001C            mov cx,0x1c00
 00000041  B42E              mov ah,0x2e
-00000043  CD40              int 0x40
+00000043  CD40              int 0x40   ; INT 40h AH=0x2e: get system tick/time -> DX:AX
 00000045  E81800            call sub_00060   ; ->0x60
 00000048  E8B101            call clear_status_001FC   ; ->0x1FC
 0000004B  E8CB01            call dispatch_blk_status_00219   ; ->0x219
 0000004E  B400              mov ah,0x0
-00000050  CD40              int 0x40
+00000050  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 00000052  EBF1              jmp short 0x45
 loc_00054:
 00000054  B409              mov ah,0x9
 00000056  BAFC00            mov dx,0xfc
-00000059  CD21              int 0x21
+00000059  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 0000005B  B8014C            mov ax,0x4c01
 ;>>>> [INT 21h AH=4Ch program exit (error path)] `int 0x21` executes DOS-style terminate-with-exit-code: AX=0x4C01 (AH=0x4C exit, AL=01 error code) loaded at 0x5B. This is the error-exit path reached at 0x54 after an INT 21h AH=48h buffer allocation failed (jc 0x54 at 0x2E/0x3A); it first prints the error string at DS:DX=0xFC via INT 21h AH=9 (0x56/0x59), then this INT 21h returns control to the resident kernel with exit code 1.  // 0x54 mov ah,0x9; 0x56 mov dx,0xfc; 0x59 int 0x21; 0x5B mov ax,0x4c01; 0x5E int 0x21. Reached from jc 0x54 at 0x2E and 0x3A.
-0000005E  CD21              int 0x21
+0000005E  CD21              int 0x21   ; INT 21h AH=0x4c: exit to kernel
 sub_00060:
 00000060  B42C              mov ah,0x2c
-00000062  CD40              int 0x40
+00000062  CD40              int 0x40   ; INT 40h AH=0x2c: clear [0x7A8] + far call
 00000064  7301              jnc loc_00067   ; ->0x67
 00000066  C3                ret
 loc_00067:
@@ -218,7 +230,7 @@ dispatch_blk_status_001AC:
 ;>>>> [serial comm / INT 40h AH=6 receive (32-bit counter args)] mov dx,[0x1e] loads the low word of the 32-bit bytes-received counter into DX as an argument before the INT 40h AH=6 serial-get-block call at 0x1DE. The preceding mov cx,[0x20] (high word) and this DX load pass the running byte total to the kernel comm service together with ES:BX (buffer seg from [0x1c], offset 0). After INT 40h AH=6 (CF set on timeout -> 0x1F0), the receiver continues. [0x1e]/[0x20] are the same 32-bit accumulator incremented by add/adc at 0x17B/0x17F.  // mov dx,[0x1e] at 0x1DA follows mov cx,[0x20] (0x1D6) and es=[0x1c]/xor bx,bx; then mov ah,6 / int 0x40 at 0x1DE/0x1E0, jc 0x1f0. [0x1e]/[0x20] are the 32-bit byte counter per prior accepted notes (0x134, 0x17F).
 000001DA  8B161E00          mov dx,[0x1e]
 000001DE  B406              mov ah,0x6
-000001E0  CD40              int 0x40
+000001E0  CD40              int 0x40   ; INT 40h AH=0x06: process buffered item
 000001E2  720C              jc dispatch_001F0   ; ->0x1F0
 000001E4  C70616007200      mov word [0x16],0x72
 ;>>>> [serial comm / INT 40h AH=6 receive-success status] mov byte [0x138],0x50 sets the pending serial-transmit status/control byte to 0x50 on the INT 40h AH=6 receive-success path (fall-through after jc 0x1f0 was NOT taken, i.e. a byte/block was received). It pairs with [0x16]=0x72 set just before (0x1E4). [0x138] is the byte the TX routine at 0x1FC later sends to the Z8530 SCC via INT 40h AH=0x30. The timeout counterpart instead sets [0x138]=0x70 at 0x1F6.  // mov byte [0x138],0x50 at 0x1EA on the no-carry path of int 0x40 AH=6 (0x1E0/jc 0x1f0 at 0x1E2), preceded by mov word [0x16],0x72 at 0x1E4; error path sets [0x138]=0x70 at 0x1F6. [0x138] consumed by TX routine 0x1FC->INT 40h AH=0x30 per prior accepted notes.
@@ -244,7 +256,7 @@ clear_status_00204:
 0000020B  0AC4              or al,ah
 ;>>>> [serial TX / INT 40h AH=0x30 (Z8530 SCC put-char)] mov ah,0x30 sets the INT 40h function selector to AH=0x30 (kernel serial put-char) immediately before int 0x40 at 0x20F. AL already holds the control byte built from [0x138] OR'd with the low nibble of [0x139] (and ah,0xf / or al,ah at 0x208/0x20B). This transmits the ACK/NAK/status byte to the Z8530 SCC host link; on success (no carry) [0x138] is cleared at 0x213, on error (jc 0x218) it returns leaving it pending.  // mov ah,0x30 at 0x20D directly precedes int 0x40 (0x20F); AL = [0x138] | ([0x139]&0xf) from 0x1FC/0x204/0x208/0x20B; jc 0x218 / mov byte [0x138],0 at 0x213. Matches prior accepted note for 0x1FC and 0x218.
 0000020D  B430              mov ah,0x30
-0000020F  CD40              int 0x40
+0000020F  CD40              int 0x40   ; INT 40h AH=0x30: clear [0x7A8] + far call
 00000211  7205              jc clear_00218   ; ->0x218
 00000213  C606380100        mov byte [0x138],0x0
 clear_00218:
@@ -252,7 +264,7 @@ clear_00218:
 00000218  C3                ret
 dispatch_blk_status_00219:
 00000219  B404              mov ah,0x4
-0000021B  CD40              int 0x40
+0000021B  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 0000021D  8CC0              mov ax,es
 0000021F  0BC3              or ax,bx
 00000221  7504              jnz loc_00227   ; ->0x227

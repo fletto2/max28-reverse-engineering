@@ -1,3 +1,15 @@
+; ============================================================================
+; EMULATOR.EXE (v0.177)  -  the boot ROM's built-in terminal / display engine
+; ----------------------------------------------------------------------------
+; WHAT IT DOES: a small glass-terminal plus hardware exerciser. It fetches display
+; "records" from the host via the kernel comm API (INT 40h) and paints them into
+; dual-plane VRAM (character plane + attribute plane 0x8000 apart), honouring 80- vs
+; 132-column mode; draws screen test patterns; handles the keyboard (INT 16h) and
+; printer output (INT 17h); and carries the parallel/serial printer-port test text.
+; This is NOT the production T 27 / VT220 personality (those live in the 256 KiB
+; flash) - it is the platform's generic built-in emulator. ;>>>> = annotations.
+; ============================================================================
+
 ; EMULATOR.EXE - code/data-separated disassembly (MZ load module, 660 B, header 512 B stripped)
 ; entry @0x0000; 1 relocs. Classified CODE-unless-data-filter-fires
 ; (recursive descent under-covers C-runtime startups). Bytes: 365 code / 288 string / 7 data.
@@ -11,7 +23,7 @@
 ;>>>> [startup (INT 21h AH=9 sign-on)] mov ah,0x9: sets AH=9 (DOS INT 21h print $-terminated string) for the int 0x21 at 0x0B, with DS=0x19 (set at 0x01/0x04) and DX=0x15 (set at 0x08) pointing at the sign-on/status message. Displays the startup banner before the AH=4Ah resize sequence.  // 0x01 mov ax,0x19; 0x04 mov ds,ax; 0x08 mov dx,0x15; 0x0B int 0x21
 00000006  B409              mov ah,0x9
 00000008  BA1500            mov dx,0x15
-0000000B  CD21              int 0x21
+0000000B  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 ;>>>> [DOS startup / INT 21h AH=4Ah] pop es: recovers the PSP segment (pushed as DS at 0x00) into ES so the following block (mov bx,sp; add bx,0xf; shr bx,4; add bx,ss; sub bx,es-via-ax) computes the resident paragraph count, then `mov ah,0x4a; int 0x21` shrinks the memory block. Standard DOS resize-memory (INT 21h AH=4Ah) preamble.  // 0x00 push ds; 0x1E mov ah,0x4a; 0x20 int 0x21 confirm the AH=4Ah resize; ES is the block segment argument.
 0000000D  07                pop es
 ;>>>> [DOS startup / INT 21h AH=4Ah resize preamble] mov bx,sp: captures the stack pointer as the top-of-image marker, first arithmetic step of the MZ C-runtime startup computing resident size in paragraphs. Followed by `add bx,0xf; shr bx,4; add bx,ss; sub bx,es` (0x10-0x1C) to form the paragraph count passed in BX to INT 21h AH=4Ah (mov ah,0x4a/int 21h at 0x1E/0x20) that shrinks the program arena. ES is the PSP popped at 0x0D.  // 0x0D pop es; 0x0E mov bx,sp; 0x10 add bx,0xf; 0x13 shr bx,4; 0x1E mov ah,0x4a; 0x20 int 0x21
@@ -28,21 +40,21 @@
 0000001C  2BD8              sub bx,ax
 ;>>>> [DOS startup / INT 21h AH=4Ah resize memory block] mov ah,0x4a: loads DOS function 4Ah (resize memory block) for the immediately following int 0x21 (0x20). BX holds the resident size in paragraphs computed by the preceding C-runtime prologue (mov bx,sp; add bx,+0xf; shr bx,4; add ss; sub es-via-ax at 0x0E-0x1C); ES = PSP (popped at 0x0D). Shrinks the program's memory arena.  // 0x1E B44A mov ah,0x4a; 0x20 CD21 int 0x21; standard MZ startup BX=paragraph count from 0x0E-0x1C; ES restored by pop es at 0x0D.
 0000001E  B44A              mov ah,0x4a
-00000020  CD21              int 0x21
+00000020  CD21              int 0x21   ; INT 21h AH=0x4a: resize memory block
 00000022  B83200            mov ax,0x32
 00000025  A21400            mov [0x14],al
-00000028  CD10              int 0x10
+00000028  CD10              int 0x10   ; INT 10h video (teletype/mode)
 ;>>>> [control flow / main-loop entry] jmp short 0x30: on the first pass through main-loop setup (right after INT 10h set-video-mode at 0x28), skips the INT 40h AH=0 serial char poll at 0x2C and lands directly on the INT 40h AH=4 get-host-record call at 0x30. Bypasses reading a char so the code immediately polls the kernel for an incoming host data block.  // Target is 0x30 (mov ah,0x4; int 0x40), skipping 0x2C (mov ah,0x0; int 0x40). Matches accepted 0x2A annotation exactly.
 0000002A  EB04              jmp short 0x30
 status_0002C:
 ;>>>> [serial host link / main-loop head (INT 40h AH=0)] mov ah,0x0: sets AH=0 (kernel comm function: poll/get char or status from the Z8530 SCC host link) immediately before int 0x40 at 0x2E. This is the top of the main service loop, the target jumped to repeatedly from 0x3D, 0x119, 0x14D, 0x179. INT 40h is the terminal kernel's custom comm/system API, not DOS.  // 0x2E int 0x40; followed by AH=4 get-record at 0x30; jmp 0x2c back-edges from 0x3D/0x119/0x14D/0x179
 0000002C  B400              mov ah,0x0
-0000002E  CD40              int 0x40
+0000002E  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 sub_00030:
 ;>>>> [kernel host-record fetch (INT 40h AH=4)] mov ah,0x4: sets the kernel function selector to 4 for the `int 40h` at 0x32 = get-host-record / get-display-buffer, which returns the record pointer in ES:BX (then validated by or ax,bx). Not a DOS allocation; INT 40h is the terminal kernel's custom comm/system API.  // 0x30 mov ah,4; 0x32 int 0x40; 0x34 mov ax,es; 0x36 or ax,bx; pointer stored at 0x3f/0x43.
 00000030  B404              mov ah,0x4
 ;>>>> [kernel INT 40h AH=4 (get host record)] int 0x40 with AH=4 (set at 0x30): kernel get-host-record/get-display-buffer service, returns the next synchronous-link data block pointer in ES:BX. Immediately validated by `mov ax,es; or ax,bx; jnz 0x3f` (0x34-0x38) null test; on success ES:BX is saved to [0x10]/[0x12], on null [0xe] is zeroed and the loop re-polls. Custom terminal-kernel comm API, NOT DOS memory allocation.  // 0x30 mov ah,4; 0x32 int 0x40; 0x34 mov ax,es; 0x36 or ax,bx; 0x38 jnz 0x3f; 0x3F mov [0x10],bx
-00000032  CD40              int 0x40
+00000032  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 ;>>>> [kernel host-record fetch (INT 40h AH=4) null-check] mov ax,es: loads the ES segment returned by INT 40h AH=4 (int 0x40 at 0x32) into AX for the or ax,bx at 0x36, testing whether the returned ES:BX record pointer is null (0000:0000). On non-null, jnz 0x3f (0x38) stores the pointer into [0x10]/[0x12]; on null it clears [0xe] at 0x3a and re-polls. This is the main-loop get-host-record validation, not a DOS resize/alloc check.  // int 0x40 (AH=4 set at 0x30) at 0x32 precedes; or ax,bx at 0x36, jnz 0x3f at 0x38, store to [0x10]/[0x12] at 0x3f/0x43. Mirrors accepted 0x32/0x38/0x3A/0x3F chain.
 00000034  8CC0              mov ax,es
 00000036  0BC3              or ax,bx
@@ -137,16 +149,16 @@ loc_000AA:
 000000C0  B402              mov ah,0x2
 000000C2  BA0018            mov dx,0x1800
 ;>>>> [video / INT 10h AH=2 set cursor position] int 0x10 with AH=2 (set at 0xC0) and DX=0x1800 (set at 0xC2) = BIOS/gate-array set-cursor-position to row DH=0x18 (24), column DL=0 (page BH ignored here). Issued right after rep movsb painted the 40-byte label row, parking the cursor at the bottom row before the INT 16h keyboard poll at 0xC7. AH=2 is set-cursor, not a video-mode set (that is INT 10h AH=0 at 0x28/0x123).  // 0xC0 B402 mov ah,0x2; 0xC2 BA0018 mov dx,0x1800; 0xC5 CD10 int 0x10; followed by 0xC7 mov ah,1/int 0x16 keyboard status. DH=0x18=24, DL=0.
-000000C5  CD10              int 0x10
+000000C5  CD10              int 0x10   ; INT 10h video (teletype/mode)
 cursor_fread_blk_000C7:
 ;>>>> [keyboard (INT 16h AH=1 status poll)] mov ah,0x1: sets AH=1 (INT 16h get-keyboard-status, non-blocking) for the int 0x16 at 0xC9; the following jz 0x119 (0xCB) returns to the main loop (jmp 0x2c at 0x119) when ZF=1 means no key pending. This is the head of the keyboard-poll branch reached after the INT 10h cursor-position call (AH=2, BX=row/col at 0xC0-0xC5). When a key IS waiting it falls through to the blocking AH=0 read at 0xCD-0xCF.  // 0xC7 mov ah,1; 0xC9 int 0x16; 0xCB jz 0x119; 0x119 jmp 0x2c (verified in full.asm); paired AH=0 blocking read at 0xCF
 000000C7  B401              mov ah,0x1
-000000C9  CD16              int 0x16
+000000C9  CD16              int 0x16   ; INT 16h keyboard
 ;>>>> [keyboard INT 16h AH=01h (status poll)] jz 0x119: tests the ZF set by INT 16h AH=01h (non-blocking keyboard status, called at 0xC9 after `mov ah,1` at 0xC7). ZF=1 means no key waiting, so it branches to 0x119 (`jmp 0x2c`) back to the main poll loop. If a key is pending it falls through to AH=00h blocking read at 0xCD/0xCF. Standard INT 16h check-then-read pair.  // 0xC7 mov ah,1; 0xC9 int 0x16; 0xCB jz 0x119; 0xCD mov ah,0; 0xCF int 0x16; 0x119 jmp 0x2c
 000000CB  744C              jz dispatch_fread_00119   ; ->0x119
 000000CD  B400              mov ah,0x0
 ;>>>> [keyboard (INT 16h)] int 0x16 with AH=0: blocking keyboard read (return next key in AX). Preceded by the AH=1 non-blocking status check at 0xC7-0xCB (jz 0x119 if no key). The returned AL is then tested (test al,al; jz 0x119) to filter extended/zero scancodes before the cmp-al,x keyboard dispatch chain.  // 0xC7 mov ah,0x1; 0xC9 int 0x16; 0xCB jz 0x119; 0xCD mov ah,0x0; 0xCF int 0x16; 0xD1 test al,al; 0xD3 jz 0x119.
-000000CF  CD16              int 0x16
+000000CF  CD16              int 0x16   ; INT 16h keyboard
 000000D1  84C0              test al,al
 000000D3  7444              jz dispatch_fread_00119   ; ->0x119
 000000D5  B407              mov ah,0x7
@@ -199,16 +211,16 @@ dispatch_fread_00119:
 0000011E  A21400            mov [0x14],al
 00000121  B400              mov ah,0x0
 ;>>>> [video (INT 10h)] int 0x10 with AH=0 (set video mode); AL was loaded from AH and stored at [0x14] (the 80/132-column mode flag) at 0x11C-0x121. This switches the OKI/Wyse gate-array display between 80- and 132-column modes, then clears [0x0E] and rejoins the main loop.  // 0x11C mov al,ah; 0x11E mov [0x14],al; 0x121 mov ah,0x0; 0x123 int 0x10; 0x125 mov word [0xe],0; 0x12B jmp 0x30.
-00000123  CD10              int 0x10
+00000123  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000125  C7060E000000      mov word [0xe],0x0
 0000012B  E902FF            jmp sub_00030   ; ->0x30
 0000012E  B409              mov ah,0x9
 00000130  BA4000            mov dx,0x40
 ;>>>> [DOS INT 21h AH=09h (print $-string) / exit path] int 0x21 executing AH=09h (set by `mov ah,0x9` at 0x12E) to print the $-terminated string at DS:DX=0x40 (the 'Terminating.' message). This is the print-then-exit sequence: immediately after, `mov ax,0x4c00; int 0x21` (0x135/0x138) performs the DOS AH=4Ch program terminate. AH=09h here, NOT a function call distinct from the following 4Ch exit.  // 0x12E mov ah,0x9; 0x130 mov dx,0x40; 0x133 int 0x21; 0x135 mov ax,0x4c00; 0x138 int 0x21
-00000133  CD21              int 0x21
+00000133  CD21              int 0x21   ; INT 21h AH=0x09: print $-string DS:DX
 ;>>>> [exit (INT 21h AH=4Ch)] mov ax,0x4c00: loads AX=0x4C00 so the following int 0x21 (0x138) performs DOS-style program terminate (AH=4Ch) with return code 0. Preceded by an INT 21h AH=9 print of the 'Terminating.' message at DS:DX=0x40.  // 0x130 mov dx,0x40; 0x133 int 0x21 (AH=9); 0x135 mov ax,0x4c00; 0x138 int 0x21.
 00000135  B8004C            mov ax,0x4c00
-00000138  CD21              int 0x21
+00000138  CD21              int 0x21   ; INT 21h AH=0x4c: exit to kernel
 0000013A  FE066F00          inc byte [0x6f]
 0000013E  FE066F00          inc byte [0x6f]
 ;>>>> [INT 40h serial put-char (host TX counter)] dec byte [0x6f] — decrements the byte counter/state variable at [0x6F] (incremented twice at 0x13A/0x13E just before). The value is then loaded to AL at 0x146 and sent to the host link via INT 40h AH=0x20 (kernel serial put-character over the Z8530 SCC) at 0x149-0x14B. Adjusts the value transmitted as a host-control/status byte.  // 0x13A inc byte[0x6f]; 0x13E inc byte[0x6f]; 0x142 dec byte[0x6f]; 0x146 mov al,[0x6f]; 0x149 mov ah,0x20; 0x14B int 0x40; 0x14D jmp 0x2c.
@@ -217,7 +229,7 @@ dispatch_fread_00119:
 00000146  A06F00            mov al,[0x6f]
 00000149  B420              mov ah,0x20
 ;>>>> [kernel send-to-host (INT 40h AH=20h)] int 0x40 with AH=0x20 (set at 0x149) and AL loaded from [0x6f] at 0x146: invokes the kernel put-char-to-host service, transmitting the byte over the synchronous Z8530 SCC host link. The counter at [0x6f] was adjusted (inc/inc/dec at 0x13A/0x13E/0x142) before being sent as a host-control/status byte; jmp 0x2c (0x14D) returns to the main poll loop. Not get-host-record.  // mov al,[0x6f] at 0x146, mov ah,0x20 at 0x149 immediately precede. Matches accepted 0x146/0x149 send-to-host annotation.
-0000014B  CD40              int 0x40
+0000014B  CD40              int 0x40   ; INT 40h AH=0x20: set current-CB status [+0x97]=AL
 0000014D  E9DCFE            jmp status_0002C   ; ->0x2C
 00000150  33D2              xor dx,dx
 00000152  BE7000            mov si,0x70
@@ -228,19 +240,19 @@ dispatch_fread_00119:
 print_fread_blk_0015D:
 0000015D  B402              mov ah,0x2
 ;>>>> [printer (INT 17h AH=2 status/init)] int 0x17 with AH=2 (set at 0x15D): printer-port self-test status/init call for the printer selected in DX (DX=0/LPT1 via xor dx,dx at 0x150, or DX=1 via mov dx,0x1 at 0x157). Returns status in AH, then xor ah,0x80 (0x161) inverts the busy/ACK sense and test ah,0xa9 (0x164) masks error/select/paper-out bits 7,5,3,0; jz 0x18f (0x167) takes the 'printer OK' path to the lodsb string-output loop.  // 0x15D mov ah,2; 0x15F int 0x17; 0x161 xor ah,0x80; 0x164 test ah,0xa9; 0x167 jz 0x18f; DX from 0x150/0x157
-0000015F  CD17              int 0x17
+0000015F  CD17              int 0x17   ; INT 17h printer
 00000161  80F480            xor ah,0x80
 00000164  F6C4A9            test ah,0xa9
 ;>>>> [INT 17h printer status test] jz 0x18f branches on the masked printer-status result. After INT 17h AH=2 (0x15F) returns status in AH, the code does xor ah,0x80 (invert the ACK/not-busy sense) then test ah,0xa9 (mask error/select/paper-out bits 7,5,3,0); jz takes the 'printer OK' path to 0x18F, the string-output lodsb loop.  // Target 7426 jz 0x18f; preceded by int 0x17 (AH=2), xor ah,0x80, test ah,0xa9. Branch target 0x18F is lodsb of the printer-test string output loop.
 00000167  7426              jz print_0018F   ; ->0x18F
 00000169  B400              mov ah,0x0
-0000016B  CD40              int 0x40
+0000016B  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 ;>>>> [kernel INT 40h AH=0 (char/status poll) carry test] jc 0x179: tests the carry flag returned by INT 40h AH=0 (kernel get-char/status from the Z8530 SCC host link, called at 0x16B after `mov ah,0` at 0x169). CF set -> branch to 0x179 (`jmp 0x2c`) back to main loop. CF clear falls through to the AH=4 get-host-record call at 0x16F. This is the comm-status branch inside the printer-port self-test polling block; CF is the AH=0 'no char / error' indicator, not a printer status.  // 0x169 mov ah,0; 0x16B int 0x40; 0x16D jc 0x179; 0x16F mov ah,4; 0x179 jmp 0x2c
 0000016D  720A              jc status_00179   ; ->0x179
 ;>>>> [kernel host-record fetch (INT 40h AH=4)] mov ah,0x4: sets the kernel function selector to 4 for the int 40h at 0x171 = get-host-record / get-display-buffer, returning the record pointer in ES:BX. This is the printer-test path's host poll (after the INT 17h AH=2 status test and the AH=0 char poll at 0x169-0x16D); the returned ES:BX is null-tested by mov ax,es / or ax,bx / jnz 0x15d. Not a DOS allocation.  // int 0x40 follows at 0x171; mov ax,es/or ax,bx at 0x173/0x175. Identical AH=4/int40/null-check pattern to accepted 0x30 and 0x171.
 0000016F  B404              mov ah,0x4
 ;>>>> [kernel host-record fetch (INT 40h AH=4)] int 0x40 with AH=4 (set at 0x16F): kernel get-host-record service fetching the next synchronous-link data block from the CDC-200/UT200 host over the Z8530 SCC. Returns the record pointer in ES:BX, tested by mov ax,es / or ax,bx (0x173/0x175) for null; jnz 0x15d (0x177) loops back into the printer-test/poll body. This is the second occurrence of the AH=4 fetch (first at 0x32).  // 0x16F mov ah,4; 0x173 mov ax,es; 0x175 or ax,bx; 0x177 jnz 0x15d
-00000171  CD40              int 0x40
+00000171  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 ;>>>> [kernel host-record fetch (INT 40h AH=4) null-check] mov ax,es: copies the ES segment returned by the INT 40h AH=4 call at 0x171 into AX so the following or ax,bx (0x175) sets ZF only if ES:BX is the null pointer 0000:0000. This is the printer-test-loop variant of the get-host-record null test; jnz 0x15d (0x177) re-runs the printer status/print step when a record/condition persists. Not a memory-block-allocated check.  // Directly follows int 0x40 (AH=4) at 0x171; or ax,bx at 0x175, jnz 0x15d at 0x177. Mirrors accepted 0x34 and the 0x171 null-check chain.
 00000173  8CC0              mov ax,es
 ;>>>> [kernel INT 40h AH=4 (get host record) null test, in printer-test loop] or ax,bx: null-pointer test of the ES:BX returned by INT 40h AH=4 (get host record, called at 0x171 after `mov ah,4`; AX=es loaded at 0x173). ZF=1 only if ES:BX==0000:0000. Non-null -> jnz 0x15d (0x177) loops back into the printer status/output block; null falls through to the AH=34h selector chain. Same AH=4/or-ax-bx idiom as 0x36 and 0x16F, here embedded in the printer-port self-test loop.  // 0x16F mov ah,4; 0x171 int 0x40; 0x173 mov ax,es; 0x175 or ax,bx; 0x177 jnz 0x15d
@@ -258,7 +270,7 @@ status_00179:
 00000186  7402              jz sub_0018A   ; ->0x18A
 00000188  B001              mov al,0x1
 sub_0018A:
-0000018A  CD40              int 0x40
+0000018A  CD40              int 0x40   ; INT 40h AH=0x34: set current-CB mode
 ;>>>> [main loop return after INT 40h AH=34h] jmp 0x2c: returns to the main service loop head after the AH=34h kernel call. The preceding chain (mov ah,0x34; cmp al,0x64; jc/jz selecting AL=0/1/2; int 40h) invokes kernel function 34h with a 3-way selector argument; this jmp resumes polling.  // 0x17C mov ah,0x34; 0x182 jc; 0x186 jz; 0x188 mov al,1; 0x18A int 0x40; 0x18C jmp 0x2c (main loop at 0x2c).
 0000018C  E99DFE            jmp status_0002C   ; ->0x2C
 print_0018F:
@@ -270,7 +282,7 @@ print_0018F:
 print_00197:
 ;>>>> [printer (INT 17h)] xor ah,ah: sets AH=0 (INT 17h function 0 = print/send character in AL to printer) immediately before int 0x17 at 0x199. This is the body of the string-print-to-printer loop: lodsb fetches a char (0x18F), exits on '$' (0x24), otherwise prints it via this INT 17h AH=0 call, then jmp short 0x15d re-enters the loop.  // 0x18F lodsb; 0x190 cmp al,0x24; 0x192 jnz 0x197; 0x197 xor ah,ah; 0x199 int 0x17; 0x19B jmp short 0x15d.
 00000197  32E4              xor ah,ah
-00000199  CD17              int 0x17
+00000199  CD17              int 0x17   ; INT 17h printer
 0000019B  EBC0              jmp short 0x15d
 
 ; ---- 0x019d-0x01a4 DATA (7 B) ----

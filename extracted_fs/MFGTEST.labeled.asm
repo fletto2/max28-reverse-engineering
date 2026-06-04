@@ -1,3 +1,15 @@
+; ============================================================================
+; MFGTEST.EXE  -  manufacturing / power-on self-test (loaded & run by the boot kernel)
+; ----------------------------------------------------------------------------
+; WHAT IT DOES: exercises and verifies the terminal hardware. It initialises the
+; Zilog Z8530 SCC (a loopback self-test, sync mode) at I/O 0x300-0x303, programs and
+; reads back the 80C188EB timers / PCB I/O ports, computes a ROM checksum, and checks
+; the keyboard and video. Status and results are printed via INT 10h / INT 21h. It
+; also carries the keyboard scancode tables and the setup-menu UI string as data.
+; A standard MS-DOS MZ executable; reaches hardware via the kernel's INT 21h / INT 40h
+; API. The ;>>>> lines below are cross-verified per-instruction annotations.
+; ============================================================================
+
 ; MFGTEST.EXE - code/data-separated disassembly (MZ load module, 5578 B, header 512 B stripped)
 ; entry @0x0000; 5 relocs. Classified CODE-unless-data-filter-fires
 ; (recursive descent under-covers C-runtime startups). Bytes: 5019 code / 382 string / 177 data.
@@ -16,13 +28,13 @@
 00000013  8CC0              mov ax,es
 00000015  2BD8              sub bx,ax
 00000017  B44A              mov ah,0x4a
-00000019  CD21              int 0x21
+00000019  CD21              int 0x21   ; INT 21h AH=0x4a: resize memory block
 ;>>>> [kernel-API/INT40h] mov al,[0x13f] loads the stored configuration/version byte and feeds it as the AL parameter to the immediately following INT 40h AH=0x1E then INT 40h AH=0x26 (kernel custom comm/system API calls). This runs right after the MZ startup INT 21h AH=4Ah memory-resize (at 0x19). The returned DL is masked (and dl,0xf) and ORed 0x30 to form an ASCII hex/decimal digit stored at [0x19d]; DH is then divided by 10 (idiv dh) to render further decimal digits. Builds the version/ID string for the diagnostic display.  // >>>>0x1B mov al,[0x13f]; 0x1E mov ah,0x1e; 0x20 int 0x40; 0x22 mov ah,0x26; 0x24 int 0x40; 0x26 and dl,0xf; 0x29 or dl,0x30; 0x2C mov [0x19d],dl; matches prior accepted 0x1B annotation
 0000001B  A03F01            mov al,[0x13f]
 0000001E  B41E              mov ah,0x1e
-00000020  CD40              int 0x40
+00000020  CD40              int 0x40   ; INT 40h AH=0x1e: get/set terminal config
 00000022  B426              mov ah,0x26
-00000024  CD40              int 0x40
+00000024  CD40              int 0x40   ; INT 40h AH=0x26: get terminal mode/attr
 00000026  80E20F            and dl,0xf
 00000029  80CA30            or dl,0x30
 0000002C  88169D01          mov [0x19d],dl
@@ -91,9 +103,9 @@ loc_000AB:
 000000B1  32DB              xor bl,bl
 000000B3  881E5902          mov [0x259],bl
 000000B7  BA08FF            mov dx,0xff08
-000000BA  ED                in ax,dx
+000000BA  ED                in ax,dx   ; PCB register
 000000BB  25BFFF            and ax,0xffbf
-000000BE  EF                out dx,ax
+000000BE  EF                out dx,ax   ; PCB register
 000000BF  B80200            mov ax,0x2
 000000C2  E8670F            call 0x102c
 loc_000C5:
@@ -122,7 +134,7 @@ loc_000EA:
 000000FD  09060A00          or [0xa],ax
 fread_fill_vram_00101:
 00000101  BA0EFF            mov dx,0xff0e
-00000104  ED                in ax,dx
+00000104  ED                in ax,dx   ; PCB register
 00000105  A98000            test ax,0x80
 00000108  750D              jnz loc_00117   ; ->0x117
 0000010A  B80100            mov ax,0x1
@@ -140,7 +152,7 @@ loc_00117:
 00000128  09060A00          or [0xa],ax
 fread_status_0012C:
 0000012C  BA0EFF            mov dx,0xff0e
-0000012F  ED                in ax,dx
+0000012F  ED                in ax,dx   ; PCB register
 00000130  A98000            test ax,0x80
 00000133  740D              jz loc_00142   ; ->0x142
 00000135  B80100            mov ax,0x1
@@ -174,90 +186,90 @@ loc_0016C:
 loc_00181:
 00000181  E86F0E            call hexprint_cksum_dispatch_00FF3   ; ->0xFF3
 00000184  BA0103            mov dx,0x301
-00000187  B809C0            mov ax,0xc009
+00000187  B809C0            mov ax,0xc009   ; WR9 master int ctrl = 0xc0 (force HW reset)
 0000018A  E8280D            call init_00EB5   ; ->0xEB5
-0000018D  B80400            mov ax,0x4
+0000018D  B80400            mov ax,0x4   ; WR4 mode/clock = 0x00 (sync mode, x1 clk)
 00000190  E8220D            call init_00EB5   ; ->0xEB5
-00000193  B803C2            mov ax,0xc203
+00000193  B803C2            mov ax,0xc203   ; WR3 Rx params = 0xc2 (Rx 8-bit)
 00000196  E81C0D            call init_00EB5   ; ->0xEB5
-00000199  B80560            mov ax,0x6005
+00000199  B80560            mov ax,0x6005   ; WR5 Tx params = 0x60 (Tx 8-bit)
 0000019C  E8160D            call init_00EB5   ; ->0xEB5
-0000019F  B80616            mov ax,0x1606
+0000019F  B80616            mov ax,0x1606   ; WR6 sync char1 = 0x16 (sync char)
 000001A2  E8100D            call init_00EB5   ; ->0xEB5
-000001A5  B80716            mov ax,0x1607
+000001A5  B80716            mov ax,0x1607   ; WR7 sync char2 = 0x16 (sync char)
 000001A8  E80A0D            call init_00EB5   ; ->0xEB5
-000001AB  B80B00            mov ax,0xb
+000001AB  B80B00            mov ax,0xb   ; WR11 clock source = 0x00 (Rx/Tx clk = RTxC pin)
 000001AE  E8040D            call init_00EB5   ; ->0xEB5
-000001B1  B80E10            mov ax,0x100e
+000001B1  B80E10            mov ax,0x100e   ; WR14 misc/BRG/loopback = 0x10 (LOCAL LOOPBACK (test))
 000001B4  E8FE0C            call init_00EB5   ; ->0xEB5
 ;>>>> [serial/SCC] mov ax,0xf (then call 0xeb5 at 0x1BA) writes WR0=0x0F to the Z8530 SCC. 0xeb5 is the SCC write-register helper (OUT DX,AL select-reg=AL=0x0F as a register-pointer/command, XCHG AL,AH, OUT DX,AL data=AH=0x00) at the SCC control port. This is one step in the long WR0..WR15 init burst (preceding writes: 0x6005,0x1606,0x1607,0x000B,0x100E, then this 0x000F) that programs the SCC for synchronous host-link operation. The 0x0F low byte = WR0 with a reset/EOI-class command.  // >>>>0x1B7 mov ax,0xf; 0x1BA call 0xeb5; preceding 0x1B1 mov ax,0x100e/call; 0x1AB mov ax,0xb/call; helper 0xeb5 = out dx,al;xchg al,ah;out dx,al per priors
-000001B7  B80F00            mov ax,0xf
+000001B7  B80F00            mov ax,0xf   ; WR15 ext/status = 0x00 (no ext-status ints)
 000001BA  E8F80C            call init_00EB5   ; ->0xEB5
 000001BD  B70C              mov bh,0xc
 000001BF  32DB              xor bl,bl
 000001C1  8AC7              mov al,bh
-000001C3  EE                out dx,al
-000001C4  EE                out dx,al
-000001C5  EE                out dx,al
-000001C6  EC                in al,dx
+000001C3  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001C4  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001C5  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001C6  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001C7  02D8              add bl,al
 000001C9  8AC7              mov al,bh
-000001CB  EE                out dx,al
-000001CC  EE                out dx,al
+000001CB  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001CC  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
 ;>>>> [hardware test] out dx,al is the 3rd of three back-to-back writes (0xCB,0xCC,0xCD) of BH to the same I/O port in DX, immediately followed by in al,dx and add bl,al. This is a data-bus / register read-back integrity test: it writes a fixed pattern (BH) several times to settle the bus, reads one byte back, and accumulates it in BL. The accumulated BL is later compared (cmp bl,0x78 at 0x211) to verify the device echoes the expected value. The triple-OUT pattern is the SCC/peripheral write-recovery wait sequence on the slow external bus.  // 0x1C1 mov al,bh; 0x1C3-0x1C5 three out dx,al; 0x1C6 in al,dx; 0x1C7 add bl,al — repeating block. Downstream 0x211 cmp bl,0x78 / jz validates the running sum. xor bl,bl at 0x1BF initializes the checksum accumulator.
-000001CD  EE                out dx,al
-000001CE  EC                in al,dx
+000001CD  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001CE  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001CF  02D8              add bl,al
 000001D1  8AC7              mov al,bh
-000001D3  EE                out dx,al
-000001D4  EE                out dx,al
-000001D5  EE                out dx,al
-000001D6  EC                in al,dx
+000001D3  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001D4  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001D5  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001D6  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001D7  02D8              add bl,al
 000001D9  8AC7              mov al,bh
-000001DB  EE                out dx,al
-000001DC  EE                out dx,al
-000001DD  EE                out dx,al
+000001DB  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001DC  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001DD  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
 ;>>>> [hardware test] in al,dx reads one byte back from the peripheral port in DX after the preceding triple out dx,al (0x1DB-0x1DD) wrote BH; the following add bl,al (0x1DF) accumulates it into the BL checksum. This is one iteration of the write-pattern/read-back data-bus integrity loop whose running sum is later compared to 0x78 (cmp bl,0x78 at 0x211) to verify the external peripheral (SCC/gate-array) echoes correctly.  // 0x1DB-0x1DD three out dx,al (BH pattern + bus write-recovery waits); 0x1DE in al,dx; 0x1DF add bl,al — identical repeating block as 0x1C6/0x1EE/0x1FE/0x206. Terminal check 0x211 cmp bl,0x78 / jz validates accumulated readback.
-000001DE  EC                in al,dx
+000001DE  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001DF  02D8              add bl,al
 000001E1  8AC7              mov al,bh
-000001E3  EE                out dx,al
-000001E4  EE                out dx,al
-000001E5  EE                out dx,al
-000001E6  EC                in al,dx
+000001E3  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001E4  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001E5  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001E6  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001E7  02D8              add bl,al
 000001E9  8AC7              mov al,bh
-000001EB  EE                out dx,al
-000001EC  EE                out dx,al
-000001ED  EE                out dx,al
-000001EE  EC                in al,dx
+000001EB  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001EC  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001ED  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001EE  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001EF  02D8              add bl,al
 000001F1  8AC7              mov al,bh
-000001F3  EE                out dx,al
-000001F4  EE                out dx,al
-000001F5  EE                out dx,al
+000001F3  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001F4  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001F5  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
 ;>>>> [SCC (Z8530) read-back test] IN AL,DX reads back the Z8530 SCC control port 0x301 (DX=0x301 set at 0x184). This is one iteration of the SCC register write/read integrity loop: write BH three times (OUT DX,AL x3) then IN, and add to BL. The triple-OUT/single-IN cadence repeatedly drives the SCC's reg-pointer/data sequence and the accumulated BL is later compared to 0x78 (at 0x211) to validate the SCC data bus.  // Lines 254-259: out dx,al x3; in al,dx; add bl,al pattern; mov dx,0x301 at 0x184; cmp bl,0x78 at 0x211. Same loop body as sample 2/0x020F.
-000001F6  EC                in al,dx
+000001F6  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001F7  02D8              add bl,al
 000001F9  8AC7              mov al,bh
-000001FB  EE                out dx,al
-000001FC  EE                out dx,al
-000001FD  EE                out dx,al
-000001FE  EC                in al,dx
+000001FB  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001FC  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001FD  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+000001FE  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 000001FF  02D8              add bl,al
 00000201  8AC7              mov al,bh
 ;>>>> [SCC (Z8530 serial)] out dx,al is the 1st of the triple back-to-back OUT DX,AL writes (0x203,0x204,0x205) of BH to the same SCC port (DX=0x300/0x301), followed by IN AL,DX (0x206) and add bl,al (0x207). This is one iteration of the SCC register write/read-back integrity loop: BH is written three times as a write-recovery/settle sequence on the slow external bus, one byte is read back, and accumulated into BL. The running BL sum is later compared to 0x78 (cmp bl,0x78 at 0x211) to verify the Z8530 echoes the expected pattern. Identical cadence to the accepted 0x1CD/0x1DE/0x1F6 annotations.  // 0x203-0x205 out dx,al x3; 0x206 in al,dx; 0x207 add bl,al; later cmp bl,0x78 at 0x211
-00000203  EE                out dx,al
-00000204  EE                out dx,al
-00000205  EE                out dx,al
-00000206  EC                in al,dx
+00000203  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+00000204  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+00000205  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+00000206  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 00000207  02D8              add bl,al
 00000209  8AC7              mov al,bh
-0000020B  EE                out dx,al
-0000020C  EE                out dx,al
-0000020D  EE                out dx,al
-0000020E  EC                in al,dx
+0000020B  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+0000020C  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+0000020D  EE                out dx,al   ; Z8530 SCC ch A ctrl/reg
+0000020E  EC                in al,dx   ; Z8530 SCC ch A ctrl/reg (read=RR0 when ctrl)
 ;>>>> [SCC (Z8530 serial)] add bl,al accumulates a byte just read (IN AL,DX) from the Z8530 SCC control port 0x301 into checksum BL. This is inside the SCC register read-back integrity test: DX=0x301 (set at 0x184), it writes BH=0x0C three times then reads (the SCC's auto-incrementing/RR readback), summing. The next instruction cmp bl,0x78 / jz checks the expected accumulated value; on mismatch it sets failure flag [0x12a]=1 and ORs a shifted bit into the channel-A SCC error mask at [0x4a].  // mov dx,0x301 at 000001A5/0x184; mov bh,0xc at 0x1BD; cmp bl,0x78 at 0x211 (line 259); on fail or [0x4a],ax at 0x21E. 0xEBA helper (line 1572) selects SCC reg 0 and reads.
 0000020F  02D8              add bl,al
 00000211  80FB78            cmp bl,0x78
@@ -268,12 +280,12 @@ loc_00181:
 0000021E  09064A00          or [0x4a],ax
 loc_00222:
 00000222  B80016            mov ax,0x1600
-00000225  CD40              int 0x40
+00000225  CD40              int 0x40   ; INT 40h AH=0x16: service (AX,DX)
 00000227  BA56FF            mov dx,0xff56
-0000022A  ED                in ax,dx
+0000022A  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000022B  8BC8              mov cx,ax
 0000022D  0C40              or al,0x40
-0000022F  EE                out dx,al
+0000022F  EE                out dx,al   ; PCB Timer/Counter Unit
 00000230  E8660C            call fread_00E99   ; ->0xE99
 00000233  BA0103            mov dx,0x301
 00000236  B000              mov al,0x0
@@ -286,7 +298,7 @@ loc_00222:
 00000247  09066A00          or [0x6a],ax
 loc_0024B:
 0000024B  BA5AFF            mov dx,0xff5a
-0000024E  ED                in ax,dx
+0000024E  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000024F  A804              test al,0x4
 00000251  750D              jnz loc_00260   ; ->0x260
 00000253  B80100            mov ax,0x1
@@ -297,10 +309,10 @@ loc_00260:
 00000260  BA56FF            mov dx,0xff56
 00000263  8BC1              mov ax,cx
 00000265  24BF              and al,0xbf
-00000267  EE                out dx,al
+00000267  EE                out dx,al   ; PCB Timer/Counter Unit
 00000268  E82E0C            call fread_00E99   ; ->0xE99
 0000026B  BA5AFF            mov dx,0xff5a
-0000026E  ED                in ax,dx
+0000026E  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000026F  A804              test al,0x4
 00000271  740D              jz blk_00280   ; ->0x280
 00000273  B80100            mov ax,0x1
@@ -319,7 +331,7 @@ blk_00280:
 00000295  09066A00          or [0x6a],ax
 loc_00299:
 00000299  B80116            mov ax,0x1601
-0000029C  CD40              int 0x40
+0000029C  CD40              int 0x40   ; INT 40h AH=0x16: service (AX,DX)
 0000029E  E8F80B            call fread_00E99   ; ->0xE99
 ;>>>> [SCC (Z8530) status test] mov al,0 sets the SCC register pointer to 0 (RR0) for the helper 0xeba, which does OUT DX,AL (select reg) then IN AL,DX (read) on port 0x301. The returned RR0 is then tested for bit5 (test al,0x20, the CTS/sync-status class bit); on the set/clear branch it stores fail-flag [0x12a]=1, shifts left 5 and ORs into SCC mask [0x6a]. One of a series of per-bit SCC RR0 status verifications.  // Lines 203-210: mov al,0x0; call 0xeba; test al,0x20; jz; mov [0x12a]; shl ax,5; or [0x6a],ax. 0xeba routine confirmed (line 1572-1575) writes 0 then reads DX (DX=0x301 in this region).
 000002A1  B000              mov al,0x0
@@ -331,7 +343,7 @@ loc_00299:
 000002B0  C1E005            shl ax,byte 0x5
 000002B3  09066A00          or [0x6a],ax
 loc_002B7:
-000002B7  B80562            mov ax,0x6205
+000002B7  B80562            mov ax,0x6205   ; WR5 Tx params = 0x62
 000002BA  E8F80B            call init_00EB5   ; ->0xEB5
 000002BD  E8D90B            call fread_00E99   ; ->0xE99
 000002C0  B000              mov al,0x0
@@ -343,13 +355,13 @@ loc_002B7:
 000002CF  C1E006            shl ax,byte 0x6
 000002D2  09066A00          or [0x6a],ax
 loc_002D6:
-000002D6  B8056A            mov ax,0x6a05
+000002D6  B8056A            mov ax,0x6a05   ; WR5 Tx params = 0x6a
 000002D9  E8D90B            call init_00EB5   ; ->0xEB5
 000002DC  B90500            mov cx,0x5
 fread_status_002DF:
 000002DF  BA0303            mov dx,0x303
 000002E2  B0AA              mov al,0xaa
-000002E4  EE                out dx,al
+000002E4  EE                out dx,al   ; Z8530 SCC ch B ctrl/reg
 000002E5  BA0103            mov dx,0x301
 ;>>>> [SCC (Z8530) Tx-ready poll] mov al,0x0 sets the SCC register pointer to 0 (select RR0) for the read helper 0xeba (which does OUT DX,AL to select then IN AL,DX on port 0x301). The returned RR0 is tested with test al,0x40 (bit6 = Tx Buffer Empty) inside a loope 0x2df poll loop (CX=5 retries, preceded by writing 0xAA to port 0x303). On timeout/failure (jnz not taken) it sets fail-flag [0x12a]=1, shifts left 7 and ORs into the channel-A SCC status mask [0x4a]. This is the SCC transmitter-ready (Tx buffer empty) verification.  // >>>>0x2E8 mov al,0; 0x2EA call 0xeba; 0x2ED test al,0x40; 0x2EF loope 0x2df; 0x2F1 jnz 0x300; 0x2F3 mov [0x12a]=1; 0x2F9 shl ax,7; 0x2FC or [0x4a],ax
 000002E8  B000              mov al,0x0
@@ -365,10 +377,10 @@ fread_status_002DF:
 fread_00300:
 00000300  B91400            mov cx,0x14
 fread_status_00303:
-00000303  B80568            mov ax,0x6805
+00000303  B80568            mov ax,0x6805   ; WR5 Tx params = 0x68
 ;>>>> [SCC (Z8530) WR5 register exercise] call 0xeb5 with AX=0x6805 (set at 0x303) writes WR5=0x68 to the Z8530 via the helper 0xeb5 (out reg-select AL, xchg, out data AH; channel control 0x301). It is inside a cx=0x14 loop that alternately writes WR5=0x68 (0x6805) and WR5=0x6a (0x6a05, call at 0x30C) — toggling the WR5 RTS/DTR/Tx-enable bit repeatedly to exercise the SCC modem-control output line. After the loop it re-reads RR0 (0xeba, test al,0x40) and records failure in mask [0x6a] bit8.  // 0x300 mov cx,0x14; 0x303 mov ax,0x6805/0x306 call 0xeb5; 0x309 mov ax,0x6a05/0x30C call 0xeb5; 0x30F loop 0x303; 0x311 mov al,0/call 0xeba/test al,0x40; 0x320 shl ax,8/or [0x6a]. 0xeb5 = SCC WR helper (out AL reg, out AH data).
 00000306  E8AC0B            call init_00EB5   ; ->0xEB5
-00000309  B8056A            mov ax,0x6a05
+00000309  B8056A            mov ax,0x6a05   ; WR5 Tx params = 0x6a
 0000030C  E8A60B            call init_00EB5   ; ->0xEB5
 0000030F  E2F2              loop fread_status_00303   ; ->0x303
 00000311  B000              mov al,0x0
@@ -381,13 +393,13 @@ fread_status_00303:
 00000323  09066A00          or [0x6a],ax
 loc_00327:
 00000327  BA0103            mov dx,0x301
-0000032A  B80B28            mov ax,0x280b
+0000032A  B80B28            mov ax,0x280b   ; WR11 clock source = 0x28
 0000032D  E8850B            call init_00EB5   ; ->0xEB5
 00000330  B90500            mov cx,0x5
 fread_clear_status_00333:
 00000333  BA0303            mov dx,0x303
 00000336  B0AA              mov al,0xaa
-00000338  EE                out dx,al
+00000338  EE                out dx,al   ; Z8530 SCC ch B ctrl/reg
 00000339  BA0103            mov dx,0x301
 0000033C  B000              mov al,0x0
 0000033E  E8790B            call cksum_fread_00EBA   ; ->0xEBA
@@ -401,15 +413,15 @@ fread_clear_status_00333:
 00000350  09064A00          or [0x4a],ax
 loc_00354:
 00000354  BA56FF            mov dx,0xff56
-00000357  ED                in ax,dx
+00000357  ED                in ax,dx   ; PCB Timer/Counter Unit
 00000358  8BD8              mov bx,ax
 0000035A  B91400            mov cx,0x14
 loc_0035D:
 0000035D  8BC3              mov ax,bx
 0000035F  0C40              or al,0x40
-00000361  EE                out dx,al
+00000361  EE                out dx,al   ; PCB Timer/Counter Unit
 00000362  24BF              and al,0xbf
-00000364  EE                out dx,al
+00000364  EE                out dx,al   ; PCB Timer/Counter Unit
 00000365  E2F6              loop loc_0035D   ; ->0x35D
 00000367  BA0103            mov dx,0x301
 0000036A  B000              mov al,0x0
@@ -424,13 +436,13 @@ loc_0035D:
 0000037C  09066A00          or [0x6a],ax
 fread_00380:
 00000380  BA5EFF            mov dx,0xff5e
-00000383  ED                in ax,dx
+00000383  ED                in ax,dx   ; PCB Timer/Counter Unit
 00000384  250FFF            and ax,0xff0f
 00000387  8BD8              mov bx,ax
-00000389  EE                out dx,al
+00000389  EE                out dx,al   ; PCB Timer/Counter Unit
 0000038A  E80C0B            call fread_00E99   ; ->0xE99
 0000038D  BA5AFF            mov dx,0xff5a
-00000390  ED                in ax,dx
+00000390  ED                in ax,dx   ; PCB Timer/Counter Unit
 00000391  24F0              and al,0xf0
 00000393  740C              jz fread_003A1   ; ->0x3A1
 00000395  B80100            mov ax,0x1
@@ -442,10 +454,10 @@ fread_003A1:
 000003A1  BA5EFF            mov dx,0xff5e
 000003A4  8BC3              mov ax,bx
 000003A6  0C80              or al,0x80
-000003A8  EE                out dx,al
+000003A8  EE                out dx,al   ; PCB Timer/Counter Unit
 000003A9  E8ED0A            call fread_00E99   ; ->0xE99
 000003AC  BA5AFF            mov dx,0xff5a
-000003AF  ED                in ax,dx
+000003AF  ED                in ax,dx   ; PCB Timer/Counter Unit
 000003B0  24F0              and al,0xf0
 000003B2  3C90              cmp al,0x90
 000003B4  740D              jz fread_003C3   ; ->0x3C3
@@ -457,10 +469,10 @@ fread_003C3:
 000003C3  BA5EFF            mov dx,0xff5e
 000003C6  8BC3              mov ax,bx
 000003C8  0C40              or al,0x40
-000003CA  EE                out dx,al
+000003CA  EE                out dx,al   ; PCB Timer/Counter Unit
 000003CB  E8CB0A            call fread_00E99   ; ->0xE99
 000003CE  BA5AFF            mov dx,0xff5a
-000003D1  ED                in ax,dx
+000003D1  ED                in ax,dx   ; PCB Timer/Counter Unit
 000003D2  25F000            and ax,0xf0
 000003D5  3D6000            cmp ax,0x60
 ;>>>> [timer/PCB] jz 0x3e7: branch in a timer-1 verification test. Preceding code sets a timer mode bit (mov dx,0xff5e / or al,0x40 / out), delays (call 0xe99), reads timer-1 count register at I/O 0xff5a, masks upper nibble (and ax,0xf0) and compares to 0x60. If it matches (jz) it skips the error path; otherwise sets [0x12a]=1 and ORs (1<<3) into timer error mask [0x2a].  // 0x3c3-0x3d8: mov dx,0xff5e; or al,0x40; out dx,al; call 0xe99; mov dx,0xff5a; in ax,dx; and ax,0xf0; cmp ax,0x60; jz 0x3e7. 0x3da-0x3e3 sets flag/shl 3/or [0x2a].
@@ -472,48 +484,48 @@ fread_003C3:
 fread_003E7:
 000003E7  E8090C            call hexprint_cksum_dispatch_00FF3   ; ->0xFF3
 000003EA  BA0103            mov dx,0x301
-000003ED  B809C0            mov ax,0xc009
+000003ED  B809C0            mov ax,0xc009   ; WR9 master int ctrl = 0xc0 (force HW reset)
 000003F0  E8C20A            call init_00EB5   ; ->0xEB5
-000003F3  B80405            mov ax,0x504
+000003F3  B80405            mov ax,0x504   ; WR4 mode/clock = 0x05
 000003F6  E8BC0A            call init_00EB5   ; ->0xEB5
-000003F9  B80104            mov ax,0x401
+000003F9  B80104            mov ax,0x401   ; WR1 int enable = 0x04
 000003FC  E8B60A            call init_00EB5   ; ->0xEB5
-000003FF  B80200            mov ax,0x2
+000003FF  B80200            mov ax,0x2   ; WR2 int vector = 0x00
 00000402  E8B00A            call init_00EB5   ; ->0xEB5
-00000405  B803C0            mov ax,0xc003
+00000405  B803C0            mov ax,0xc003   ; WR3 Rx params = 0xc0
 00000408  E8AA0A            call init_00EB5   ; ->0xEB5
-0000040B  B80560            mov ax,0x6005
+0000040B  B80560            mov ax,0x6005   ; WR5 Tx params = 0x60 (Tx 8-bit)
 0000040E  E8A40A            call init_00EB5   ; ->0xEB5
-00000411  B80901            mov ax,0x109
+00000411  B80901            mov ax,0x109   ; WR9 master int ctrl = 0x01
 00000414  E89E0A            call init_00EB5   ; ->0xEB5
-00000417  B80B50            mov ax,0x500b
+00000417  B80B50            mov ax,0x500b   ; WR11 clock source = 0x50
 0000041A  E8980A            call init_00EB5   ; ->0xEB5
-0000041D  B80C7E            mov ax,0x7e0c
+0000041D  B80C7E            mov ax,0x7e0c   ; WR12 baud low = 0x7e
 00000420  E8920A            call init_00EB5   ; ->0xEB5
-00000423  B80D00            mov ax,0xd
+00000423  B80D00            mov ax,0xd   ; WR13 baud high = 0x00
 00000426  E88C0A            call init_00EB5   ; ->0xEB5
-00000429  B80E02            mov ax,0x20e
+00000429  B80E02            mov ax,0x20e   ; WR14 misc/BRG/loopback = 0x02
 0000042C  E8860A            call init_00EB5   ; ->0xEB5
-0000042F  B80E03            mov ax,0x30e
+0000042F  B80E03            mov ax,0x30e   ; WR14 misc/BRG/loopback = 0x03
 00000432  E8800A            call init_00EB5   ; ->0xEB5
-00000435  B803C1            mov ax,0xc103
+00000435  B803C1            mov ax,0xc103   ; WR3 Rx params = 0xc1
 00000438  E87A0A            call init_00EB5   ; ->0xEB5
-0000043B  B80568            mov ax,0x6805
+0000043B  B80568            mov ax,0x6805   ; WR5 Tx params = 0x68
 0000043E  E8740A            call init_00EB5   ; ->0xEB5
-00000441  B80F00            mov ax,0xf
+00000441  B80F00            mov ax,0xf   ; WR15 ext/status = 0x00 (no ext-status ints)
 00000444  E86E0A            call init_00EB5   ; ->0xEB5
-00000447  B80010            mov ax,0x1000
+00000447  B80010            mov ax,0x1000   ; WR0 cmd/ptr = 0x10
 0000044A  E8680A            call init_00EB5   ; ->0xEB5
-0000044D  B80010            mov ax,0x1000
+0000044D  B80010            mov ax,0x1000   ; WR0 cmd/ptr = 0x10
 ;>>>> [serial/SCC] call 0xeb5 to program a Z8530 SCC write-register pair. 0xeb5 is `out dx,al; xchg al,ah; out dx,al; ret` (DX=SCC control port 0x300): it writes AH=register-select then AL=data. Here AX=0x1000 writes WR0=0x10 (Reset Tx CRC / command). Part of the full WR0..WR15 init burst (0x30E,0xC103,0x6805,0x0F,0x1000,0x1000,0x3000,0x1401) configuring the synchronous host link.  // 0xeb5 body verified in MFGTEST.full.asm L1568-1571: out dx,al / xchg al,ah / out dx,al / ret. Preceding mov ax,0x1000 at 0x44D.
 00000450  E8620A            call init_00EB5   ; ->0xEB5
-00000453  B80030            mov ax,0x3000
+00000453  B80030            mov ax,0x3000   ; WR0 cmd/ptr = 0x30
 00000456  E85C0A            call init_00EB5   ; ->0xEB5
-00000459  B80114            mov ax,0x1401
+00000459  B80114            mov ax,0x1401   ; WR1 int enable = 0x14
 ;>>>> [serial/SCC] call 0xEB5 with AX=0x1401 (set at 0x459). 0xEB5 is the Z8530 SCC write-register helper: it does OUT DX,AL (register pointer = AL=0x01) then XCHG AL,AH; OUT DX,AL (data = AH=0x14) to the SCC control port (DX=0x301, channel control). This writes WR1=0x14 as one step in the WR0..WR15 init burst (0x30E,0xC103,0x6805,0x0F,0x1000,0x1000,0x3000,0x1401) configuring the SCC for synchronous host-link operation.  // 0xEB5 body: out dx,al / xchg al,ah / out dx,al / ret; AX=0x1401 loaded at 0x459; surrounding mov ax,0x3000/0x1000 SCC values
 0000045C  E8560A            call init_00EB5   ; ->0xEB5
 0000045F  BA0EFF            mov dx,0xff0e
-00000462  ED                in ax,dx
+00000462  ED                in ax,dx   ; PCB register
 00000463  A91000            test ax,0x10
 00000466  7410              jz clear_00478   ; ->0x478
 00000468  B80100            mov ax,0x1
@@ -525,18 +537,18 @@ fread_003E7:
 00000477  90                nop
 clear_00478:
 00000478  BA0103            mov dx,0x301
-0000047B  B80909            mov ax,0x909
+0000047B  B80909            mov ax,0x909   ; WR9 master int ctrl = 0x09
 0000047E  E8340A            call init_00EB5   ; ->0xEB5
 00000481  BA08FF            mov dx,0xff08
-00000484  ED                in ax,dx
+00000484  ED                in ax,dx   ; PCB register
 00000485  25EFFF            and ax,0xffef
-00000488  EF                out dx,ax
+00000488  EF                out dx,ax   ; PCB register
 00000489  BA56FF            mov dx,0xff56
-0000048C  ED                in ax,dx
+0000048C  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000048D  24BF              and al,0xbf
-0000048F  EE                out dx,al
+0000048F  EE                out dx,al   ; PCB Timer/Counter Unit
 00000490  B80016            mov ax,0x1600
-00000493  CD40              int 0x40
+00000493  CD40              int 0x40   ; INT 40h AH=0x16: service (AX,DX)
 00000495  B80200            mov ax,0x2
 ;>>>> [serial/SCC] call 0x102c (Z8530 channel/test setup with AX=2) then a poll loop: call 0xff3 (delay), call 0x1048 (status read), jnz loops back. After the loop it reads SCC RR0 via 0xeba at DX=0x301 (mov al,0; out; in al,dx) and tests bit7 (0x80) to check a receive/sync status; failure sets flag [0x12a]=1 and ORs shifted bit into error mask [0xaa].  // Context shows int 0x40 AX=0x1600 at 0x490, then call 0x102c; loop 0x49b->0x4a1; mov dx,0x301 / call 0xeba / test ax,0x80 at 0x4a3-0x4ab. 0xeba verified L1572-1575.
 00000498  E8910B            call 0x102c
@@ -555,7 +567,7 @@ fread_status_0049B:
 000004B9  0906AA00          or [0xaa],ax
 loc_004BD:
 000004BD  B80116            mov ax,0x1601
-000004C0  CD40              int 0x40
+000004C0  CD40              int 0x40   ; INT 40h AH=0x16: service (AX,DX)
 000004C2  B80200            mov ax,0x2
 000004C5  E8640B            call 0x102c
 loc_004C8:
@@ -628,25 +640,25 @@ loc_00554:
 loc_00570:
 00000570  BA60FF            mov dx,0xff60
 00000573  B81F80            mov ax,0x801f
-00000576  EF                out dx,ax
+00000576  EF                out dx,ax   ; PCB Timer/Counter Unit
 00000577  BA64FF            mov dx,0xff64
 0000057A  B82B00            mov ax,0x2b
-0000057D  EF                out dx,ax
+0000057D  EF                out dx,ax   ; PCB Timer/Counter Unit
 0000057E  BA66FF            mov dx,0xff66
-00000581  ED                in ax,dx
+00000581  ED                in ax,dx   ; PCB Timer/Counter Unit
 00000582  BA68FF            mov dx,0xff68
-00000585  ED                in ax,dx
+00000585  ED                in ax,dx   ; PCB Timer/Counter Unit
 ;>>>> [80C188EB PCB timer test] mov dx,0xff66 then IN AX,DX reads a 80C186/188 PCB timer register (timer-2 block in the 0xFF50-0xFF6A timer window per the PCB map). This is part of a timer/counter readback exercise: the code first programmed timer registers 0xFF60 (=0x801F) and 0xFF64 (=0x002B) via OUT, then reads back 0xFF66 and 0xFF68 to verify the timer hardware. Immediately after it reads chip-select reg 0xFF08, clears bit2 (and ax,0xfffb) and writes it back.  // Lines 110-131: mov dx,0xff60/out, mov dx,0xff64/out, in from 0xff66/0xff68, then mov dx,0xff08; in; and ax,0xfffb; out. PCB map in CLAUDE.md: 0xFF50-0xFF6A = Timer 0/1/2.
 00000586  BA66FF            mov dx,0xff66
-00000589  ED                in ax,dx
+00000589  ED                in ax,dx   ; PCB Timer/Counter Unit
 ;>>>> [80C188EB PCB timer test] mov dx,0xff68 then in ax,dx (0x58D) reads the 80C186/188 PCB timer register at 0xFF68 (timer-2 block in the 0xFF50-0xFF6A timer window). This is the second of a paired timer readback: the code first programmed 0xFF60 and 0xFF64 (=0x2B) via OUT, then reads back 0xFF66 (at 0x586/0x589) and 0xFF68 here to verify the timer hardware. Immediately after it reads chip-select port 0xFF08, clears bit2 (and ax,0xfffb) and writes it back. Timer/counter readback exercise, not serial.  // >>>>0x58A mov dx,0xff68; 0x58D in ax,dx; 0x577 mov dx,0xff64/out; 0x57E mov dx,0xff66/in; 0x58E mov dx,0xff08/in; 0x592 and ax,0xfffb; matches prior 0x586 annotation
 0000058A  BA68FF            mov dx,0xff68
-0000058D  ED                in ax,dx
+0000058D  ED                in ax,dx   ; PCB Timer/Counter Unit
 0000058E  BA08FF            mov dx,0xff08
-00000591  ED                in ax,dx
+00000591  ED                in ax,dx   ; PCB register
 ;>>>> [timer/PCB-port] and ax,0xFFFB clears bit 2 of the word just read from 80C188EB PCB port 0xFF08 (peripheral/port-1 control or pin-mux register); the following out dx,ax writes it back. Read-modify-write that disables one peripheral/chip-select pin during the timer/port exercise sequence (which read timers at 0xFF66/0xFF68 just before).  // prior mov dx,0xff08 / in ax,dx; this and ax,0xfffb; next out dx,ax
 00000592  25FBFF            and ax,0xfffb
-00000595  EF                out dx,ax
+00000595  EF                out dx,ax   ; PCB register
 00000596  E85A0A            call hexprint_cksum_dispatch_00FF3   ; ->0xFF3
 00000599  C606580200        mov byte [0x258],0x0
 0000059E  C7061D020000      mov word [0x21d],0x0
@@ -655,7 +667,7 @@ loc_00570:
 000005AA  C706E5010100      mov word [0x1e5],0x1
 000005B0  BA6AFF            mov dx,0xff6a
 000005B3  A0AF01            mov al,[0x1af]
-000005B6  EE                out dx,al
+000005B6  EE                out dx,al   ; PCB Timer/Counter Unit
 loc_005B7:
 000005B7  A11D02            mov ax,[0x21d]
 000005BA  3D3600            cmp ax,0x36
@@ -714,24 +726,24 @@ kbd_cursor_fread_00627:
 00000636  E8AF0A            call fread_010E8   ; ->0x10E8
 00000639  B000              mov al,0x0
 0000063B  B41E              mov ah,0x1e
-0000063D  CD40              int 0x40
+0000063D  CD40              int 0x40   ; INT 40h AH=0x1e: get/set terminal config
 0000063F  B8004C            mov ax,0x4c00
-00000642  CD21              int 0x21
+00000642  CD21              int 0x21   ; INT 21h AH=0x4c: exit to kernel
 cursor_00644:
 00000644  06                push es
 00000645  53                push bx
 00000646  B83000            mov ax,0x30
-00000649  CD10              int 0x10
+00000649  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000064B  B80006            mov ax,0x600
 0000064E  B90000            mov cx,0x0
 00000651  BA4F1D            mov dx,0x1d4f
 00000654  B702              mov bh,0x2
-00000656  CD10              int 0x10
+00000656  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000658  B80002            mov ax,0x200
 ;>>>> [video/display] mov bh,al loads the BIOS video page number (BH) from AL ahead of the INT 10h AH=02h set-cursor-position call at 0x660. AX=0x0200 was just set at 0x658; DX=0x2000 (row 0x20=32, col 0x00) is the target cursor position. This follows the INT 10h AH=06h scroll/clear of the 80x30 screen (0x656) and precedes a loop (cx=0x1e=30 rows) that walks the keyboard scancode table (es lodsw, byte-swap to DI at 0x66F) to paint the self-test display. Standard INT 10h cursor setup, not SCC.  // 0x658 mov ax,0x200; 0x65B mov bh,al; 0x65D mov dx,0x2000; 0x660 int 0x10; prior 0x64B-0x656 is INT 10h AH=06h scroll
 0000065B  8AF8              mov bh,al
 0000065D  BA0020            mov dx,0x2000
-00000660  CD10              int 0x10
+00000660  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000662  5B                pop bx
 00000663  07                pop es
 00000664  8BF3              mov si,bx
@@ -1000,11 +1012,11 @@ dispatch_fhandle_00904:
 00000904  06                push es
 00000905  53                push bx
 00000906  B83000            mov ax,0x30
-00000909  CD10              int 0x10
+00000909  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000090B  B80002            mov ax,0x200
 0000090E  8AF8              mov bh,al
 00000910  BA0020            mov dx,0x2000
-00000913  CD10              int 0x10
+00000913  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000915  5B                pop bx
 00000916  07                pop es
 00000917  8BF3              mov si,bx
@@ -1037,11 +1049,11 @@ dispatch_fhandle_00943:
 0000094B  BA4F1D            mov dx,0x1d4f
 0000094E  B702              mov bh,0x2
 ;>>>> [video/display] INT 10h video BIOS, AH=06h (scroll window up) with AL=01 (1 line), CX=0x0000 (top-left row0,col0), DX=0x1D4F (bottom-right row 0x1D=29, col 0x4F=79), BH=0x02 (blank-line attribute = green on black). Clears/scrolls the 80x30 text screen. Immediately followed by INT 10h AH=02h (set cursor) at 0x95A.  // mov ax,0x601; mov cx,0; mov dx,0x1d4f; mov bh,0x2; int 0x10; then mov ax,0x200/int 0x10 set-cursor
-00000950  CD10              int 0x10
+00000950  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000952  B80002            mov ax,0x200
 00000955  8AF8              mov bh,al
 00000957  BA0020            mov dx,0x2000
-0000095A  CD10              int 0x10
+0000095A  CD10              int 0x10   ; INT 10h video (teletype/mode)
 0000095C  5B                pop bx
 0000095D  07                pop es
 0000095E  268B473A          mov ax,[es:bx+0x3a]
@@ -1065,12 +1077,12 @@ cursor_00986:
 00000986  06                push es
 00000987  53                push bx
 00000988  B83700            mov ax,0x37
-0000098B  CD10              int 0x10
+0000098B  CD10              int 0x10   ; INT 10h video (teletype/mode)
 ;>>>> [video (INT 10h)] mov ax,0x200 loads AH=02h (INT 10h set-cursor-position) ahead of the INT 10h at 0x995. The following mov bh,al sets page BH=0 (AL=0) and mov dx,0x2000 sets DH=row 0x20, DL=col 0. This positions the cursor at the start of the keyboard/scancode test display, immediately after the mode-set INT 10h AX=0x37 at 0x98B. Part of the 0x986 setup-screen entry routine.  // 0x988 mov ax,0x37/0x98B int 0x10 (mode set); 0x98D mov ax,0x200; 0x990 mov bh,al; 0x992 mov dx,0x2000; 0x995 int 0x10. Identical cursor-set pattern at 0x658/0x9FE.
 0000098D  B80002            mov ax,0x200
 00000990  8AF8              mov bh,al
 00000992  BA0020            mov dx,0x2000
-00000995  CD10              int 0x10
+00000995  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000997  5B                pop bx
 00000998  07                pop es
 00000999  8BF3              mov si,bx
@@ -1124,11 +1136,11 @@ dispatch_fhandle_009F7:
 000009F7  06                push es
 000009F8  53                push bx
 000009F9  B83000            mov ax,0x30
-000009FC  CD10              int 0x10
+000009FC  CD10              int 0x10   ; INT 10h video (teletype/mode)
 000009FE  B80002            mov ax,0x200
 00000A01  8AF8              mov bh,al
 00000A03  BA0020            mov dx,0x2000
-00000A06  CD10              int 0x10
+00000A06  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000A08  5B                pop bx
 00000A09  07                pop es
 00000A0A  8BF3              mov si,bx
@@ -1312,16 +1324,16 @@ fill_vram_attr_00BBD:
 00000BBD  06                push es
 00000BBE  53                push bx
 00000BBF  A13001            mov ax,[0x130]
-00000BC2  CD10              int 0x10
+00000BC2  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000BC4  B80006            mov ax,0x600
 00000BC7  33DB              xor bx,bx
 00000BC9  33C9              xor cx,cx
 00000BCB  8B163A01          mov dx,[0x13a]
-00000BCF  CD10              int 0x10
+00000BCF  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000BD1  B80002            mov ax,0x200
 00000BD4  8AF8              mov bh,al
 00000BD6  BA0020            mov dx,0x2000
-00000BD9  CD10              int 0x10
+00000BD9  CD10              int 0x10   ; INT 10h video (teletype/mode)
 00000BDB  5B                pop bx
 00000BDC  07                pop es
 00000BDD  B80200            mov ax,0x2
@@ -1586,27 +1598,27 @@ sub_00E9E:
 fread_status_00EA3:
 00000EA3  BA4203            mov dx,0x342
 00000EA6  8AC3              mov al,bl
-00000EA8  EE                out dx,al
+00000EA8  EE                out dx,al   ; M76V020 video: control/attr
 00000EA9  E8EDFF            call fread_00E99   ; ->0xE99
 00000EAC  BA4003            mov dx,0x340
-00000EAF  EC                in al,dx
+00000EAF  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00000EB0  24E8              and al,0xe8
 00000EB2  3AC7              cmp al,bh
 00000EB4  C3                ret
 init_00EB5:
-00000EB5  EE                out dx,al
+00000EB5  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
 00000EB6  86C4              xchg al,ah
-00000EB8  EE                out dx,al
+00000EB8  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
 00000EB9  C3                ret
 cksum_fread_00EBA:
 00000EBA  B000              mov al,0x0
-00000EBC  EE                out dx,al
-00000EBD  EC                in al,dx
+00000EBC  EE                out dx,al   ; M76V020 video: status (bits0-1 err/ready)
+00000EBD  EC                in al,dx   ; M76V020 video: status (bits0-1 err/ready)
 00000EBE  C3                ret
 kbd_cursor_fread_00EBF:
 00000EBF  BA0100            mov dx,0x1
 00000EC2  B400              mov ah,0x0
-00000EC4  CD16              int 0x16
+00000EC4  CD16              int 0x16   ; INT 16h keyboard
 00000EC6  3C1B              cmp al,0x1b
 ;>>>> [keyboard] jz 0xed4: handles the result of the INT 16h AH=0 keystroke read at 0xec4. cmp al,0x1b tested for ESC; this jz takes ESC to 0xed4 which `jmp 0x627` to abort/exit the test menu. The fall-through then tests mode byte [0x13e] and checks for Space (0x20), and arrow/cursor keys (0x12,0x13) to navigate the setup menu.  // 0xebf-0xec8: mov dx,1; mov ah,0; int 0x16; cmp al,0x1b; jz 0xed4. 0xed4 jmp 0x627. 0xed7 cmp al,0x20; 0xee3 cmp al,0x12; 0xee7 cmp al,0x13.
 00000EC8  740A              jz kbd_cursor_fread_00ED4   ; ->0xED4
@@ -1693,7 +1705,7 @@ loc_00F6C:
 00000F76  3474              xor al,0x74
 00000F78  A23F01            mov [0x13f],al
 00000F7B  B41E              mov ah,0x1e
-00000F7D  CD40              int 0x40
+00000F7D  CD40              int 0x40   ; INT 40h AH=0x1e: get/set terminal config
 ;>>>> [setup-menu / config state] or dx,dx (flag-set) immediately before RET, returning status from the [0x13e]==2 branch of the setup-menu handler. That branch read config byte [0x13f], XORed it with 0x74 (toggling a setup field), wrote it back, then issued INT 40h with AH=0x1E (kernel custom system service) before reaching this return. The or dx,dx is the routine's exit-status convention, not a data computation.  // Lines 222-231: mov al,[0x13f]; xor al,0x74; mov [0x13f],al; mov ah,0x1e; int 0x40; or dx,dx; ret. INT 40h is the kernel custom API per hardware notes.
 00000F7F  0BD2              or dx,dx
 00000F81  C3                ret
@@ -1748,10 +1760,10 @@ dispatch_fhandle_00FF2:
 00000FF2  C3                ret
 hexprint_cksum_dispatch_00FF3:
 00000FF3  B400              mov ah,0x0
-00000FF5  CD40              int 0x40
+00000FF5  CD40              int 0x40   ; INT 40h AH=0x00: yield / wait-for-event
 00000FF7  9C                pushf
 00000FF8  B401              mov ah,0x1
-00000FFA  CD16              int 0x16
+00000FFA  CD16              int 0x16   ; INT 16h keyboard
 00000FFC  7409              jz dispatch_status_01007   ; ->0x1007
 00000FFE  E8BEFE            call kbd_cursor_fread_00EBF   ; ->0xEBF
 00001001  7404              jz dispatch_status_01007   ; ->0x1007
@@ -1763,7 +1775,7 @@ dispatch_status_01007:
 00001007  9D                popf
 00001008  730E              jnc dispatch_status_01018   ; ->0x1018
 0000100A  B404              mov ah,0x4
-0000100C  CD40              int 0x40
+0000100C  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 0000100E  8CC0              mov ax,es
 00001010  0BC3              or ax,bx
 00001012  74DF              jz hexprint_cksum_dispatch_00FF3   ; ->0xFF3
@@ -1773,7 +1785,7 @@ dispatch_status_01018:
 00001018  E88900            call sub_010A4   ; ->0x10A4
 0000101B  750D              jnz loc_0102A   ; ->0x102A
 0000101D  B404              mov ah,0x4
-0000101F  CD40              int 0x40
+0000101F  CD40              int 0x40   ; INT 40h AH=0x04: get next queued record -> ES:BX
 00001021  8CC0              mov ax,es
 00001023  0BC3              or ax,bx
 00001025  74CC              jz hexprint_cksum_dispatch_00FF3   ; ->0xFF3
@@ -1869,33 +1881,33 @@ loc_010DC:
 000010DF  C3                ret
 hexprint_cksum_dispatch_010E0:
 000010E0  BA08FF            mov dx,0xff08
-000010E3  ED                in ax,dx
+000010E3  ED                in ax,dx   ; PCB register
 000010E4  A38202            mov [0x282],ax
 000010E7  C3                ret
 fread_010E8:
 000010E8  BA08FF            mov dx,0xff08
 000010EB  A18202            mov ax,[0x282]
 ;>>>> [timer/PCB-port] out dx,ax writes the saved value [0x282] back to 80C188EB PCB port 0xFF08. This is the restore half of a save/restore pair: 0x10E0 reads 0xFF08 into [0x282], and this routine (0x10E8) writes it back unchanged, restoring the port state after a test.  // 0x10E8: mov dx,0xff08 / mov ax,[0x282] / out dx,ax / ret; companion 0x10E0 reads and stores [0x282]
-000010EE  EF                out dx,ax
+000010EE  EF                out dx,ax   ; PCB register
 000010EF  C3                ret
 hexprint_cksum_dispatch_010F0:
 000010F0  BA08FF            mov dx,0xff08
 000010F3  A18202            mov ax,[0x282]
 000010F6  0DD400            or ax,0xd4
-000010F9  EF                out dx,ax
+000010F9  EF                out dx,ax   ; PCB register
 000010FA  C3                ret
 hexprint_cksum_dispatch_010FB:
 000010FB  BA1EFF            mov dx,0xff1e
-000010FE  ED                in ax,dx
+000010FE  ED                in ax,dx   ; PCB I/O Port Unit
 000010FF  A38802            mov [0x288],ax
 00001102  BA1EFF            mov dx,0xff1e
 00001105  B81800            mov ax,0x18
-00001108  EF                out dx,ax
+00001108  EF                out dx,ax   ; PCB I/O Port Unit
 00001109  C3                ret
 sub_0110A:
 0000110A  BA1EFF            mov dx,0xff1e
 0000110D  A18802            mov ax,[0x288]
-00001110  EF                out dx,ax
+00001110  EF                out dx,ax   ; PCB I/O Port Unit
 00001111  C3                ret
 00001112  60                pusha
 00001113  1E                push ds
@@ -1903,7 +1915,7 @@ sub_0110A:
 00001117  8ED8              mov ds,ax
 00001119  C606580201        mov byte [0x258],0x1
 0000111E  BA68FF            mov dx,0xff68
-00001121  ED                in ax,dx
+00001121  ED                in ax,dx   ; PCB Timer/Counter Unit
 00001122  8B1E1D02          mov bx,[0x21d]
 00001126  81FB3600          cmp bx,0x36
 0000112A  7305              jnc loc_01131   ; ->0x1131
@@ -1913,7 +1925,7 @@ loc_01131:
 00001131  891E1D02          mov [0x21d],bx
 00001135  BA02FF            mov dx,0xff02
 00001138  B80080            mov ax,0x8000
-0000113B  EF                out dx,ax
+0000113B  EF                out dx,ax   ; PCB register
 0000113C  1F                pop ds
 0000113D  61                popa
 0000113E  CF                iret
@@ -1926,12 +1938,12 @@ loc_01131:
 0000114E  730C              jnc loc_0115C   ; ->0x115C
 00001150  BA6AFF            mov dx,0xff6a
 00001153  8A87AF01          mov al,[bx+0x1af]
-00001157  EE                out dx,al
+00001157  EE                out dx,al   ; PCB Timer/Counter Unit
 00001158  FF06E501          inc word [0x1e5]
 loc_0115C:
 0000115C  BA02FF            mov dx,0xff02
 0000115F  B80080            mov ax,0x8000
-00001162  EF                out dx,ax
+00001162  EF                out dx,ax   ; PCB register
 00001163  1F                pop ds
 00001164  61                popa
 00001165  CF                iret
@@ -1972,10 +1984,10 @@ hexprint_cksum_dispatch_01166:
 000011B2  58                pop ax
 000011B3  07                pop es
 000011B4  BA60FF            mov dx,0xff60
-000011B7  ED                in ax,dx
+000011B7  ED                in ax,dx   ; PCB Timer/Counter Unit
 000011B8  A37E02            mov [0x27e],ax
 000011BB  BA64FF            mov dx,0xff64
-000011BE  ED                in ax,dx
+000011BE  ED                in ax,dx   ; PCB Timer/Counter Unit
 000011BF  A38002            mov [0x280],ax
 000011C2  C3                ret
 sub_011C3:
@@ -2012,10 +2024,10 @@ sub_011C3:
 000011FE  07                pop es
 000011FF  BA60FF            mov dx,0xff60
 00001202  A17E02            mov ax,[0x27e]
-00001205  EF                out dx,ax
+00001205  EF                out dx,ax   ; PCB Timer/Counter Unit
 00001206  BA64FF            mov dx,0xff64
 00001209  A18002            mov ax,[0x280]
-0000120C  EF                out dx,ax
+0000120C  EF                out dx,ax   ; PCB Timer/Counter Unit
 0000120D  C3                ret
 0000120E  60                pusha
 0000120F  1E                push ds
@@ -2024,7 +2036,7 @@ sub_011C3:
 00001215  C606590201        mov byte [0x259],0x1
 0000121A  BA02FF            mov dx,0xff02
 0000121D  B80080            mov ax,0x8000
-00001220  EF                out dx,ax
+00001220  EF                out dx,ax   ; PCB register
 00001221  1F                pop ds
 00001222  61                popa
 00001223  CF                iret
@@ -2047,11 +2059,11 @@ hexprint_cksum_dispatch_01224:
 00001249  58                pop ax
 0000124A  07                pop es
 0000124B  BA1CFF            mov dx,0xff1c
-0000124E  ED                in ax,dx
+0000124E  ED                in ax,dx   ; PCB I/O Port Unit
 0000124F  A38602            mov [0x286],ax
 00001252  BA1CFF            mov dx,0xff1c
 00001255  B80700            mov ax,0x7
-00001258  EF                out dx,ax
+00001258  EF                out dx,ax   ; PCB I/O Port Unit
 00001259  C3                ret
 sub_0125A:
 0000125A  06                push es
@@ -2074,7 +2086,7 @@ sub_0125A:
 ;>>>> [timer/PCB-port] mov dx,0xff1c sets DX to 80C188EB PCB I/O port 0xFF1C, then [0x286] is loaded into AX (0x127B) and written out (OUT DX,AX at 0x127E) before RET. 0xFF1C lies in the 80C186/188 PCB register window; this restores/programs a PCB control register (chip-select/refresh-class) with the saved value from data table [0x286]. It is the tail of the INT 0Eh hook routine (after the IVT writes at 0x1268-0x1271 and the pop sequence at 0x1275-0x1277).  // 0x1278 mov dx,0xff1c; 0x127B mov ax,[0x286]; 0x127E out dx,ax; 0x127F ret
 00001278  BA1CFF            mov dx,0xff1c
 0000127B  A18602            mov ax,[0x286]
-0000127E  EF                out dx,ax
+0000127E  EF                out dx,ax   ; PCB I/O Port Unit
 0000127F  C3                ret
 00001280  60                pusha
 00001281  1E                push ds
@@ -2084,9 +2096,9 @@ sub_0125A:
 0000128C  E88D00            call sub_0131C   ; ->0x131C
 0000128F  BA02FF            mov dx,0xff02
 00001292  B80080            mov ax,0x8000
-00001295  EF                out dx,ax
+00001295  EF                out dx,ax   ; PCB register
 00001296  BA0103            mov dx,0x301
-00001299  B80038            mov ax,0x3800
+00001299  B80038            mov ax,0x3800   ; WR0 cmd/ptr = 0x38
 0000129C  E816FC            call init_00EB5   ; ->0xEB5
 0000129F  1F                pop ds
 000012A0  61                popa
@@ -2111,7 +2123,7 @@ hexprint_cksum_dispatch_012A2:
 000012C7  58                pop ax
 000012C8  07                pop es
 000012C9  BA18FF            mov dx,0xff18
-000012CC  ED                in ax,dx
+000012CC  ED                in ax,dx   ; PCB I/O Port Unit
 000012CD  A38402            mov [0x284],ax
 000012D0  C3                ret
 sub_012D1:
@@ -2132,7 +2144,7 @@ sub_012D1:
 000012EE  07                pop es
 000012EF  BA18FF            mov dx,0xff18
 000012F2  A18402            mov ax,[0x284]
-000012F5  EF                out dx,ax
+000012F5  EF                out dx,ax   ; PCB I/O Port Unit
 000012F6  C3                ret
 sub_012F7:
 000012F7  BA0103            mov dx,0x301
@@ -2145,7 +2157,7 @@ sub_012F7:
 0000130B  730E              jnc loc_0131B   ; ->0x131B
 0000130D  8A87AF01          mov al,[bx+0x1af]
 00001311  BA0303            mov dx,0x303
-00001314  EE                out dx,al
+00001314  EE                out dx,al   ; Z8530 SCC ch B ctrl/reg
 00001315  FF06E501          inc word [0x1e5]
 00001319  EBDC              jmp short 0x12f7
 loc_0131B:
@@ -2157,7 +2169,7 @@ sub_0131C:
 00001324  A801              test al,0x1
 00001326  7419              jz loc_01341   ; ->0x1341
 00001328  BA0303            mov dx,0x303
-0000132B  EC                in al,dx
+0000132B  EC                in al,dx   ; Z8530 SCC ch B ctrl/reg (read=RR0 when ctrl)
 0000132C  8B1E5502          mov bx,[0x255]
 00001330  81FB3600          cmp bx,0x36
 00001334  7305              jnc loc_0133B   ; ->0x133B
